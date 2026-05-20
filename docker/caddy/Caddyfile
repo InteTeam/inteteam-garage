@@ -1,0 +1,8 @@
+{$APP_DOMAIN:localhost} {
+    reverse_proxy nginx:80
+    encode gzip
+    log {
+        output file /var/log/caddy/access.log
+        format json
+    }
+}
