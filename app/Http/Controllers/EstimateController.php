@@ -37,11 +37,17 @@ final class EstimateController extends Controller
         ]);
     }
 
-    public function store(StoreEstimateRequest $request): RedirectResponse
+    public function store(StoreEstimateRequest $request, RepairJob $job): RedirectResponse
     {
         $this->authorize('create', Estimate::class);
 
-        $this->estimateService->create($request->validated());
+        $nextRevision = ($job->estimates()->max('revision_number') ?? 0) + 1;
+
+        $this->estimateService->create([
+            'garage_id' => $job->garage_id,
+            'job_id' => $job->id,
+            'revision_number' => $nextRevision,
+        ]);
 
         return back()->with(['alert' => 'Estimate created.', 'type' => 'success']);
     }
