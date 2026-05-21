@@ -9,6 +9,15 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property string $id
+ * @property string $garage_id
+ * @property string $job_id
+ * @property string $from_state
+ * @property string $to_state
+ * @property string|null $transitioned_by
+ * @property \Carbon\Carbon $occurred_at
+ */
 final class JobStateTransition extends Model
 {
     use HasGarageScope;

@@ -40,6 +40,8 @@ final class ApprovalEvent extends Model
 
     public const EVENT_PAYMENT_CONFIRMED = 'payment_confirmed';
 
+    public const EVENT_TIMEOUT_ALERT = 'timeout_alert';
+
     public $timestamps = false;
 
     protected $fillable = [
