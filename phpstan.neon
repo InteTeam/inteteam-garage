@@ -1,0 +1,20 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - phpstan-baseline.neon
+
+parameters:
+    paths:
+        - app
+        - config
+        - database
+        - routes
+    level: 5
+    excludePaths:
+        - */cache/*
+        - */node_modules/*
+        - */vendor/*
+        - */storage/*
+        - */bootstrap/cache/*
+    parallel:
+        maximumNumberOfProcesses: 4
+        processTimeout: 300.0

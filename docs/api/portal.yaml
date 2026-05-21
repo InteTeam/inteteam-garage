@@ -1,0 +1,280 @@
+openapi: 3.0.3
+
+info:
+  title: inteteam-garage Customer Portal API
+  version: 1.0.0
+  description: |
+    Read-only and action endpoints available to customers via a signed portal token.
+    No SSO or account is required — all requests are authenticated by the signed token
+    in the URL path parameter.
+
+servers:
+  - url: '{baseUrl}/portal/{token}'
+    variables:
+      baseUrl:
+        default: https://garage.inte.team
+      token:
+        description: Signed portal token issued per RepairJob
+
+components:
+  securitySchemes:
+    portalToken:
+      type: apiKey
+      in: path
+      name: token
+      description: Signed token embedded in every portal URL
+
+  schemas:
+    Vehicle:
+      type: object
+      properties:
+        registration: { type: string, example: AB12 CDE }
+        make: { type: string, example: Ford }
+        model: { type: string, example: Focus }
+        year: { type: integer, nullable: true, example: 2019 }
+        colour: { type: string, nullable: true, example: Silver }
+
+    LineItem:
+      type: object
+      properties:
+        id: { type: string, format: ulid }
+        description: { type: string, example: Brake pads (front axle) }
+        price: { type: number, format: float, example: 120.00 }
+        status:
+          type: string
+          enum: [pending, approved, declined]
+        notes: { type: string, nullable: true }
+
+    Estimate:
+      type: object
+      properties:
+        revision_number: { type: integer, example: 2 }
+        line_items:
+          type: array
+          items:
+            $ref: '#/components/schemas/LineItem'
+        total_approved:
+          type: number
+          format: float
+          description: Sum of approved line items only
+
+    ApprovalEvent:
+      type: object
+      properties:
+        event_type:
+          type: string
+          enum:
+            - estimate_sent
+            - line_item_approved
+            - line_item_declined
+            - customer_question
+            - mechanic_response
+            - scope_change
+            - handover_submitted
+            - payment_requested
+            - payment_confirmed
+            - timeout_alert
+        actor_type:
+          type: string
+          enum: [mechanic, customer, system]
+        payload: { type: object, additionalProperties: true }
+        occurred_at: { type: string, format: date-time }
+
+    HandoverItem:
+      type: object
+      properties:
+        label: { type: string, example: Front left tyre pressure }
+        condition:
+          type: string
+          enum: [ok, advisory, attention_required]
+        notes: { type: string, nullable: true }
+
+    ErrorResponse:
+      type: object
+      properties:
+        message: { type: string }
+
+security:
+  - portalToken: []
+
+paths:
+  /:
+    get:
+      operationId: portal.show
+      summary: View job overview
+      description: Returns the current repair job state, vehicle, and latest estimate.
+      responses:
+        '200':
+          description: Job overview page (Inertia response)
+        '403':
+          description: Token invalid, expired, or revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /timeline:
+    get:
+      operationId: portal.timeline
+      summary: View approval event timeline
+      description: Returns the ordered audit log of all approval events for this job.
+      responses:
+        '200':
+          description: Timeline page (Inertia response)
+        '403':
+          description: Token invalid
+
+  /line-items/{lineItemId}/approve:
+    post:
+      operationId: portal.line-items.approve
+      summary: Approve a line item
+      parameters:
+        - name: lineItemId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: ulid
+      responses:
+        '302':
+          description: Redirect back to job overview on success
+        '403':
+          description: Token invalid or line item does not belong to this job
+        '422':
+          description: Line item already resolved (approved or declined)
+
+  /line-items/{lineItemId}/decline:
+    post:
+      operationId: portal.line-items.decline
+      summary: Decline a line item
+      parameters:
+        - name: lineItemId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: ulid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notes:
+                  type: string
+                  description: Optional reason for declining
+      responses:
+        '302':
+          description: Redirect back to job overview
+        '403':
+          description: Token invalid or line item does not belong to this job
+
+  /line-items/{lineItemId}/question:
+    post:
+      operationId: portal.line-items.question
+      summary: Raise a question about a line item
+      description: Transitions job to customer_query state and records the question.
+      parameters:
+        - name: lineItemId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: ulid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [question]
+              properties:
+                question:
+                  type: string
+                  maxLength: 1000
+      responses:
+        '302':
+          description: Redirect back to job overview
+        '422':
+          description: Validation error (missing question)
+
+  /notification-preference:
+    post:
+      operationId: portal.preference.update
+      summary: Update notification channel preference
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [channel]
+              properties:
+                channel:
+                  type: string
+                  enum: [email, sms, in_app]
+      responses:
+        '302':
+          description: Redirect back on success
+        '422':
+          description: Invalid channel value
+
+  /handover:
+    get:
+      operationId: portal.handover.show
+      summary: View handover inspection form
+      responses:
+        '200':
+          description: Handover form (Inertia response)
+        '403':
+          description: Job not yet in awaiting_collection state
+
+    post:
+      operationId: portal.handover.submit
+      summary: Submit handover inspection
+      description: Customer confirms condition of returned items. Locks the handover record.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items, customer_signature]
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/HandoverItem'
+                customer_signature:
+                  type: string
+                  description: Base64-encoded signature image
+                notes:
+                  type: string
+                  nullable: true
+      responses:
+        '302':
+          description: Redirect to job overview on success
+        '422':
+          description: Validation error or handover already submitted
+
+  /payment:
+    get:
+      operationId: portal.payment.show
+      summary: View payment page
+      description: Only available when online payment is enabled for this garage.
+      responses:
+        '200':
+          description: Payment page with outstanding balance (Inertia response)
+        '403':
+          description: Online payment not enabled for this garage
+
+  /payment/request:
+    post:
+      operationId: portal.payment.request
+      summary: Initiate payment request
+      description: Creates a payment request in the CRM and returns a reference.
+      responses:
+        '302':
+          description: Redirect to payment confirmation page
+        '422':
+          description: Payment already requested or job not in correct state
