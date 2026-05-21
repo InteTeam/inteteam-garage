@@ -10,6 +10,7 @@ use App\Models\Estimate;
 use App\Models\Garage;
 use App\Models\LineItem;
 use App\Models\RepairJob;
+use App\Services\CrmNotificationService;
 use App\Services\EstimateService;
 use App\Services\JobStateMachine;
 use App\Services\TranslationService;
@@ -24,6 +25,7 @@ final class EstimateController extends Controller
         private readonly EstimateService $estimateService,
         private readonly JobStateMachine $stateMachine,
         private readonly TranslationService $translationService,
+        private readonly CrmNotificationService $notifications,
     ) {}
 
     public function index(): Response
@@ -41,8 +43,7 @@ final class EstimateController extends Controller
 
         $this->estimateService->create($request->validated());
 
-        return redirect()->route('estimates.index')
-            ->with(['alert' => 'Estimate created.', 'type' => 'success']);
+        return back()->with(['alert' => 'Estimate created.', 'type' => 'success']);
     }
 
     public function show(Estimate $estimate): Response
@@ -60,8 +61,7 @@ final class EstimateController extends Controller
 
         $this->estimateService->update($estimate, $request->validated());
 
-        return redirect()->route('estimates.index')
-            ->with(['alert' => 'Estimate updated.', 'type' => 'success']);
+        return back()->with(['alert' => 'Estimate updated.', 'type' => 'success']);
     }
 
     public function destroy(Estimate $estimate): RedirectResponse
@@ -70,8 +70,7 @@ final class EstimateController extends Controller
 
         $this->estimateService->delete($estimate);
 
-        return redirect()->route('estimates.index')
-            ->with(['alert' => 'Estimate deleted.', 'type' => 'success']);
+        return back()->with(['alert' => 'Estimate deleted.', 'type' => 'success']);
     }
 
     public function send(RepairJob $job, Estimate $estimate): RedirectResponse
@@ -81,6 +80,8 @@ final class EstimateController extends Controller
         $this->stateMachine->transition($job, RepairJob::STATE_AWAITING_APPROVAL, (string) auth()->id());
 
         $estimate->update(['sent_at' => now()]);
+
+        $this->notifications->notifyEstimateSent($job);
 
         return back()->with(['alert' => 'Estimate sent to customer.', 'type' => 'success']);
     }

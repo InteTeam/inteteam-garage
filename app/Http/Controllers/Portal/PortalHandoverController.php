@@ -63,9 +63,6 @@ final class PortalHandoverController extends Controller
             }
         }
 
-        /** @var RepairJob $portalToken */
-        $portalToken = $request->attributes->get('portal_token');
-
         $inspection = HandoverInspection::withoutGlobalScopes()->create([
             'garage_id' => $job->garage_id,
             'job_id' => $job->id,

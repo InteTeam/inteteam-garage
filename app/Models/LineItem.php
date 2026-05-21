@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $description
  * @property float $price
  * @property string $status
+ * @property string|null $customer_notes
  */
 #[UsePolicy(LineItemPolicy::class)]
 final class LineItem extends Model
@@ -47,6 +48,7 @@ final class LineItem extends Model
         'description',
         'price',
         'status',
+        'customer_notes',
     ];
 
     protected function casts(): array
