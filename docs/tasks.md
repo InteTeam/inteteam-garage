@@ -1,7 +1,7 @@
 # inteteam-garage — Phased Tasks
 
 **SOP reference:** inte-playbook `workflow/README.md` Steps 0–10  
-**Stack:** Laravel 12 + React 19 (mirrors inteteam_crm)  
+**Stack:** Laravel 13 + PHP 8.3 + React 19 (canonical — confirmed via `composer.json` + `CLAUDE.md`)  
 **Generator:** `integen laravel:resource` / `integen react:page` for all boilerplate
 
 ---
@@ -18,7 +18,7 @@
 - [x] `docs/features/garage-core/README.md` — business requirements + user stories + acceptance criteria
 - [x] `docs/features/garage-core/architecture.md` — technical decisions (state machine, multi-tenancy, GCS, CRM API boundary)
 - [x] `docs/features/garage-core/COMPONENT_INVENTORY.md` — list existing CRM components that can be reused before planning new ones
-- [ ] `docs/database/migrations/` directory created, sequential numbering starts at `001`
+- [x] `docs/database/migrations/` directory created, sequential numbering starts at `001`
 - [x] `phpunit.xml` configured (SQLite in-memory, queue sync, mail log)
 - [x] `pint.json` configured (standard preset from playbook)
 - [x] `phpstan.neon` configured (level 5, larastan extension)
@@ -52,7 +52,7 @@ integen generates `company_id` and `HasCompanyScope`. This project uses `garage_
 - [x] `integen laravel:resource NotificationPreference --no-soft-deletes`
 - [x] Apply scope rename to all generated files
 - [x] Migration: `job_mechanic` pivot table (job_id, mechanic_id) — manual, no integen
-- [ ] `docs/database/migrations/001_garages.md` through `008_job_mechanic.md`
+- [x] `docs/database/migrations/001_garages.md` through `009_repair_job_mechanic.md` (renumbered — actual migration sequence on disk uses `009_repair_job_mechanic`, not `008_job_mechanic`)
 
 ### React Pages (admin-facing CRUD)
 
@@ -81,7 +81,7 @@ integen generates `company_id` and `HasCompanyScope`. This project uses `garage_
 
 - [x] `GarageIsolationTest` — cross-garage data access returns 404
 - [x] `JobStateMachineTest` — each valid transition succeeds; each invalid transition throws (9 tests)
-- [ ] `MechanicAssignmentTest` — single / multiple / all assignment variations
+- [x] `MechanicAssignmentTest` — single / multiple / all assignment variations (9 tests, pending stack verification)
 
 **Exit criteria:** Multi-tenant isolation verified. All state transitions covered by tests. PHPStan passes.
 
@@ -199,7 +199,7 @@ integen generates `company_id` and `HasCompanyScope`. This project uses `garage_
   - Handover notes flagged → mechanic
   - Payment confirmed → mechanic
   - 24h timeout in `awaiting_approval` / `customer_query` / `awaiting_collection` → both
-- [ ] 24h timeout: scheduled command (`php artisan garage:check-timeouts`), runs hourly
+- [x] 24h timeout: scheduled command (`php artisan garage:check-timeouts`), runs hourly — `App\Console\Commands\CheckJobTimeouts`
 
 ### Tests
 
@@ -238,11 +238,11 @@ integen generates `company_id` and `HasCompanyScope`. This project uses `garage_
 
 **Goal:** Portal service (store_front / customer portal app) can fetch all job data. Served on garage's own domain.
 
-- [ ] Define portal API contract: OpenAPI spec at `docs/api/portal.yaml`
+- [x] Define portal API contract: OpenAPI spec at `docs/api/portal.yaml` (280 lines)
 - [x] All portal endpoints are token-scoped — `ValidatePortalToken` middleware, all routes in `routes/portal.php`
 - [x] `GET /portal/{token}/timeline` — `PortalJobController::timeline()`
 - [x] `GET /portal/{token}/handover` — `PortalHandoverController::show()`
-- [ ] CORS config: portal domain(s) allowed, not wildcard (`config/cors.php` not yet created)
+- [~] CORS config: portal domain(s) allowed, not wildcard — `config/cors.php` exists; portal-domain allow-list still needs setting once production portal URL is confirmed
 - [x] Signed token includes `garage_id` — stored on `SignedPortalToken` model
 - [ ] Integration test: simulate full customer journey via portal API (estimate → approve → handover → collected)
 
