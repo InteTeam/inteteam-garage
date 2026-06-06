@@ -10,6 +10,17 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property string $id
+ * @property string $garage_id
+ * @property string $handover_inspection_id
+ * @property string $line_item_id
+ * @property bool $accepted
+ * @property string|null $notes
+ * @property-read Garage $garage
+ * @property-read HandoverInspection $handoverInspection
+ * @property-read LineItem $lineItem
+ */
 final class HandoverItem extends Model
 {
     use HasFactory;

@@ -26,6 +26,7 @@ A repair job is broken into ordered visual stages — `pre-inspection`, `disasse
 | Name | Columns | Purpose |
 |---|---|---|
 | `job_stages_garage_id_job_id_index` | `(garage_id, job_id)` | Per-job stage list, sorted by `sort_order` |
+| `job_stages_garage_id_created_at_index` | `(garage_id, created_at)` | Playbook-required `idx_garage_created` for tenant-time queries (added in `20260606000001_add_garage_created_indexes`) |
 
 ## Foreign Keys
 
@@ -61,7 +62,7 @@ RepairJob ──hasMany──► JobStage ──hasMany──► Media
 ## Deviations from playbook
 
 - **No policy attached.** Other Phase 1 models all have `#[UsePolicy(...)]`. If admins/mechanics should have distinct rights to lock/unlock stages, attach `JobStagePolicy`. If authorization through the parent `RepairJob` is intentional, document that in `RepairJobPolicy`.
-- **Missing `idx_garage_created`.** Only `(garage_id, job_id)` is present.
+- **Has `idx_garage_created`.** Added via `20260606000001_add_garage_created_indexes` after playbook audit.
 
 ## Related Migrations
 

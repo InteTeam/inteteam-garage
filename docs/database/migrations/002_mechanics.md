@@ -26,6 +26,7 @@ A `Mechanic` is the per-garage profile of a staff member. It links a global `Use
 |---|---|---|
 | `mechanics_garage_id_user_id_unique` | `(garage_id, user_id)` | One profile per user per garage |
 | `mechanics_garage_id_is_active_index` | `(garage_id, is_active)` | Active-staff list queries |
+| `mechanics_garage_id_created_at_index` | `(garage_id, created_at)` | Playbook-required `idx_garage_created` (added via `20260606000001_add_garage_created_indexes`) |
 
 ## Foreign Keys
 
@@ -59,7 +60,7 @@ Garage ──hasMany──► Mechanic ──belongsTo──► User
 ## Deviations from playbook
 
 - **Missing FK constraint on `user_id`.** Migration uses `unsignedBigInteger('user_id')` instead of `foreignId('user_id')->constrained('users')`. Per `docs/DATABASE_CONVENTIONS.md` and `inte-playbook/laravel/DATABASE_CONVENTIONS.md`, FKs to `users` should be `foreignId(...)->constrained()`. Action: backfill the constraint in a follow-up migration, or document why the constraint was intentionally omitted (e.g. cross-DB user table from SSO).
-- **Missing `idx_company_created` equivalent.** Playbook requires `(garage_id, created_at)` on every tenant-scoped table. Only `(garage_id, is_active)` is present here. Action: add `(garage_id, created_at)` if list views start filtering/sorting by creation time.
+- **Has `idx_garage_created` equivalent.** Added via `20260606000001_add_garage_created_indexes` after playbook audit. Playbook required `(garage_id, created_at)` on every tenant-scoped table.
 
 ## Related Migrations
 

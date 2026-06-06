@@ -5,10 +5,23 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Models\Concerns\HasGarageScope;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property string $id
+ * @property string $garage_id
+ * @property string $job_id
+ * @property string $actor_type
+ * @property string $actor_id
+ * @property string $event_type
+ * @property array<string, mixed> $payload
+ * @property Carbon $occurred_at
+ * @property-read Garage $garage
+ * @property-read RepairJob $repairJob
+ */
 final class ApprovalEvent extends Model
 {
     use HasGarageScope;
