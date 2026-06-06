@@ -32,7 +32,14 @@ final class JobController extends Controller
     {
         $this->authorize('view', $job);
 
-        $job->load(['vehicle', 'mechanics', 'currentEstimate.lineItems', 'stages', 'stateTransitions']);
+        $job->load([
+            'vehicle',
+            'mechanics',
+            'currentEstimate.lineItems',
+            'stages',
+            'stateTransitions',
+            'handoverInspection.items.lineItem',
+        ]);
 
         return Inertia::render('RepairJobs/Show', [
             'job' => $job,
@@ -49,6 +56,6 @@ final class JobController extends Controller
 
         $this->stateMachine->transition($job, $validated['state'], (string) $request->user()->id);
 
-        return back()->with(['alert' => 'Job status updated.', 'type' => 'success']);
+        return back()->with(['alert' => 'The job status was updated.', 'type' => 'success']);
     }
 }

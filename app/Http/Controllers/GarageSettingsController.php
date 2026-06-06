@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\Garage;
+use App\Services\GarageSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -12,6 +13,10 @@ use Inertia\Response;
 
 final class GarageSettingsController extends Controller
 {
+    public function __construct(
+        private readonly GarageSettingsService $settingsService,
+    ) {}
+
     public function index(): Response
     {
         $garage = Garage::withoutGlobalScopes()->findOrFail(session('current_garage_id'));
@@ -34,8 +39,8 @@ final class GarageSettingsController extends Controller
             'locale' => ['required', 'string', 'in:en,pl'],
         ]);
 
-        $garage->update($validated);
+        $this->settingsService->update($garage, $validated, (string) $request->user()->id);
 
-        return back()->with(['alert' => 'Settings saved.', 'type' => 'success']);
+        return back()->with(['alert' => 'The settings were saved.', 'type' => 'success']);
     }
 }

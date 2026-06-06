@@ -72,6 +72,7 @@ final class PortalHandoverController extends Controller
 
         foreach ($validated['items'] as $item) {
             HandoverItem::withoutGlobalScopes()->create([
+                'garage_id' => $job->garage_id,
                 'handover_inspection_id' => $inspection->id,
                 'line_item_id' => $item['line_item_id'],
                 'accepted' => $item['accepted'],
@@ -87,6 +88,6 @@ final class PortalHandoverController extends Controller
         );
 
         return redirect()->route('portal.show', $token)
-            ->with(['alert' => 'Handover submitted successfully.', 'type' => 'success']);
+            ->with(['alert' => 'The handover was submitted successfully.', 'type' => 'success']);
     }
 }

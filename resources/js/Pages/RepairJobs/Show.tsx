@@ -2,7 +2,7 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import GarageLayout from '@/Layouts/GarageLayout';
 import { JobStateBadge } from '@/Components/JobStateBadge';
 import { Button } from '@/Components/ui/button';
-import { ArrowLeft, ChevronRight } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ChevronRight } from 'lucide-react';
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
     created:             ['booked'],
@@ -33,6 +33,8 @@ interface Mechanic { id: string; user: { name: string } }
 interface LineItem { id: string; description: string; price: number; status: string }
 interface Estimate { id: string; revision_number: number; sent_at: string | null; line_items: LineItem[] }
 interface StateTransition { id: string; from_state: string; to_state: string; occurred_at: string }
+interface HandoverItem { id: string; accepted: boolean; notes: string | null; line_item: { description: string } }
+interface HandoverInspection { id: string; submitted_at: string; items: HandoverItem[] }
 
 interface Job {
     id: string;
@@ -41,6 +43,7 @@ interface Job {
     mechanics: Mechanic[];
     current_estimate: Estimate | null;
     state_transitions: StateTransition[];
+    handover_inspection: HandoverInspection | null;
     created_at: string;
 }
 
@@ -50,6 +53,9 @@ interface Props {
 
 export default function JobShow({ job }: Props) {
     const allowedNext = VALID_TRANSITIONS[job.state] ?? [];
+    const flaggedHandoverItems = job.handover_inspection?.items.filter(
+        (item) => !item.accepted || (item.notes !== null && item.notes.trim() !== ''),
+    ) ?? [];
 
     function transition(toState: string) {
         router.post(`/jobs/${job.id}/transition`, { state: toState });
@@ -92,6 +98,24 @@ export default function JobShow({ job }: Props) {
                     ))}
                 </div>
             </div>
+
+            {job.handover_inspection && flaggedHandoverItems.length > 0 && (
+                <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                    <div className="flex items-center gap-2 text-sm font-medium text-amber-900">
+                        <AlertTriangle className="h-4 w-4" />
+                        Handover follow-up needed ({flaggedHandoverItems.length})
+                    </div>
+                    <ul className="mt-2 space-y-1 text-sm text-amber-900">
+                        {flaggedHandoverItems.map((item) => (
+                            <li key={item.id} className="flex items-start gap-2">
+                                <span className="font-medium">{item.line_item.description}</span>
+                                {!item.accepted && <span className="text-amber-700">— not accepted</span>}
+                                {item.notes && <span className="text-amber-800">: {item.notes}</span>}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
 
             <div className="grid grid-cols-3 gap-4">
                 <div className="col-span-2 space-y-4">
