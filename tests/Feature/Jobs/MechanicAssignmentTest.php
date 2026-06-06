@@ -9,6 +9,7 @@ use App\Models\Mechanic;
 use App\Models\RepairJob;
 use App\Models\User;
 use App\Models\Vehicle;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -133,7 +134,7 @@ final class MechanicAssignmentTest extends TestCase
 
         $this->job->mechanics()->attach($mechanic->id);
 
-        $this->expectException(\Illuminate\Database\UniqueConstraintViolationException::class);
+        $this->expectException(UniqueConstraintViolationException::class);
 
         $this->job->mechanics()->attach($mechanic->id);
     }

@@ -51,6 +51,7 @@ return [
 
     'sso' => [
         'url' => env('SSO_URL'),
+        'public_url' => env('SSO_PUBLIC_URL', env('SSO_URL')),
         'client_id' => env('SSO_CLIENT_ID'),
         'client_secret' => env('SSO_CLIENT_SECRET'),
     ],

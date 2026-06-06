@@ -105,6 +105,9 @@ final class RepairJob extends Model
         return $this->belongsToMany(Mechanic::class, 'repair_job_mechanic');
     }
 
+    /**
+     * @return HasMany<JobStage, $this>
+     */
     public function stages(): HasMany
     {
         return $this->hasMany(JobStage::class, 'job_id')->orderBy('sort_order');

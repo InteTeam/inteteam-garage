@@ -16,7 +16,7 @@ final class SsoLoginController extends Controller
 {
     public function redirect(): RedirectResponse
     {
-        $ssoUrl = config('services.sso.url');
+        $ssoUrl = config('services.sso.public_url');
         $clientId = config('services.sso.client_id');
         $callbackUrl = route('auth.callback');
 
@@ -42,7 +42,7 @@ final class SsoLoginController extends Controller
         $tokenData = $response->json();
 
         $userResponse = Http::withToken($tokenData['access_token'])
-            ->get(config('services.sso.url') . '/api/user');
+            ->get(config('services.sso.url') . '/oauth/userinfo');
 
         if ($userResponse->failed()) {
             return redirect()->route('login')->withErrors(['sso' => 'Could not retrieve user.']);

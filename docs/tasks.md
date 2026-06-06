@@ -94,16 +94,16 @@ integen generates `company_id` and `HasCompanyScope`. This project uses `garage_
 - [x] `GcsService` — upload, signed URL generation (15–60 min expiry), object naming (`{job_id}/{stage}/{timestamp}_{filename}`)
 - [x] `integen laravel:resource Media` — (job_id, job_stage_id, gcs_path, mime_type, uploaded_by, uploaded_at)
 - [x] Stage lock: `Media` cannot be attached to a stage once `JobStage.locked_at` is set (checked in `GcsService::upload()`)
-- [ ] `JobStage` locks automatically when job transitions past that stage
+- [x] `JobStage` locks automatically when job transitions past that stage (`JobStateMachine::lockStagesPastActivity()` — policy: stage locks when `STATE_ORDER[newState] > STATE_ORDER[STAGE_FINAL_ACTIVE_STATE[stage]]`)
 - [x] API endpoint: `POST /jobs/{job}/stages/{stage}/media` — `MediaController::store()`
 - [x] API endpoint: `GET /jobs/{job}/media` — `Api/JobApiController::media()` returns signed URLs
-- [ ] `docs/database/migrations/006_media.md`
+- [x] `docs/database/migrations/010_media.md` (filename is `010_` not `006_` — actual disk order; renumbering noted in `verify-task-list-vs-code` audit)
 
 ### Tests
 
-- [ ] `MediaUploadTest` — upload succeeds for current stage, fails for locked stage
-- [ ] `SignedUrlTest` — signed URL generated, expires correctly
-- [ ] `StageLockTest` — stage locks on job state transition, rejects subsequent uploads
+- [x] `MediaUploadTest` — upload succeeds for current stage, fails for locked stage (3 tests: unlocked success, locked rejection, mime validation)
+- [x] `SignedUrlTest` — signed URL generated, expires correctly (2 tests: configured expiry honored, batch `signedUrls()` keyed by media id)
+- [x] `StageLockTest` — stage locks on job state transition, rejects subsequent uploads (3 tests: diagnosis stages lock at awaiting_approval, repair stage unlocked at approved then locks at completed, lock idempotent across repeat transitions)
 
 **Exit criteria:** Photo upload to GCS works end-to-end. Signed URL returns accessible URL. Locked stage rejects upload.
 
@@ -190,7 +190,7 @@ integen generates `company_id` and `HasCompanyScope`. This project uses `garage_
 - [ ] On job creation: `NotificationPreference` seeded from garage default
 - [x] `POST /portal/{token}/notification-preference` — `PortalPreferenceController::update()` appends to `ApprovalEvent` log
 - [ ] Admin override endpoint — appends to `ApprovalEvent` log (same pattern)
-- [ ] `CrmNotificationService` — wraps CRM notification API; garage never sends directly
+- [x] `CrmNotificationService` — wraps CRM notification API; garage never sends directly (`app/Services/CrmNotificationService.php` with 4 methods: `notifyEstimateSent`, `notifyCustomerQuery`, `notifyTimeoutReminder`, `notifyHandoverReady`)
 - [ ] Notification triggers:
   - Estimate sent → customer
   - Scope change found → customer
@@ -204,7 +204,7 @@ integen generates `company_id` and `HasCompanyScope`. This project uses `garage_
 ### Tests
 
 - [ ] `NotificationPreferenceAuditTest` — every preference change creates an ApprovalEvent
-- [ ] `TimeoutCommandTest` — jobs over 24h in blocked states are flagged, notification triggered
+- [x] `TimeoutCommandTest` — jobs over 24h in blocked states are flagged, notification triggered (`tests/Feature/Commands/CheckJobTimeoutsTest.php`, 5 tests covering alert, dedup, skip <24h, skip non-timeout states)
 
 **Exit criteria:** No notification leaves the system without going through CRM service. All preference changes are in the audit log.
 

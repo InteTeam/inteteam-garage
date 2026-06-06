@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\JobStage;
 use App\Models\JobStateTransition;
 use App\Models\RepairJob;
 use Illuminate\Support\Facades\Auth;
@@ -21,6 +22,27 @@ final class JobStateMachine
         RepairJob::STATE_APPROVED => [RepairJob::STATE_COMPLETED, RepairJob::STATE_SCOPE_CHANGE],
         RepairJob::STATE_COMPLETED => [RepairJob::STATE_AWAITING_COLLECTION],
         RepairJob::STATE_AWAITING_COLLECTION => [RepairJob::STATE_COLLECTED],
+    ];
+
+    private const STATE_ORDER = [
+        RepairJob::STATE_CREATED => 0,
+        RepairJob::STATE_BOOKED => 1,
+        RepairJob::STATE_IN_PROGRESS => 2,
+        RepairJob::STATE_AWAITING_APPROVAL => 3,
+        RepairJob::STATE_CUSTOMER_QUERY => 3,
+        RepairJob::STATE_SCOPE_CHANGE => 3,
+        RepairJob::STATE_APPROVED => 4,
+        RepairJob::STATE_COMPLETED => 5,
+        RepairJob::STATE_AWAITING_COLLECTION => 6,
+        RepairJob::STATE_COLLECTED => 7,
+    ];
+
+    private const STAGE_FINAL_ACTIVE_STATE = [
+        JobStage::STAGE_PRE_INSPECTION => RepairJob::STATE_IN_PROGRESS,
+        JobStage::STAGE_DISASSEMBLY => RepairJob::STATE_IN_PROGRESS,
+        JobStage::STAGE_FAULT_FOUND => RepairJob::STATE_IN_PROGRESS,
+        JobStage::STAGE_REPAIR => RepairJob::STATE_APPROVED,
+        JobStage::STAGE_COMPLETE => RepairJob::STATE_COMPLETED,
     ];
 
     public function __construct() {}
@@ -43,6 +65,33 @@ final class JobStateMachine
             'transitioned_by' => $actorId ?? Auth::id(),
             'occurred_at' => now(),
         ]);
+
+        $this->lockStagesPastActivity($job, $toState);
+    }
+
+    private function lockStagesPastActivity(RepairJob $job, string $toState): void
+    {
+        $toStateOrder = self::STATE_ORDER[$toState] ?? null;
+
+        if ($toStateOrder === null) {
+            return;
+        }
+
+        $stages = $job->stages()->whereNull('locked_at')->get();
+
+        foreach ($stages as $stage) {
+            $finalActiveState = self::STAGE_FINAL_ACTIVE_STATE[$stage->name] ?? null;
+
+            if ($finalActiveState === null) {
+                continue;
+            }
+
+            if ($toStateOrder <= self::STATE_ORDER[$finalActiveState]) {
+                continue;
+            }
+
+            $stage->forceFill(['locked_at' => now()])->save();
+        }
     }
 
     public function canTransition(RepairJob $job, string $toState): bool
