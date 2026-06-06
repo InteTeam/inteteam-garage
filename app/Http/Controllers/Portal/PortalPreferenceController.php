@@ -46,6 +46,6 @@ final class PortalPreferenceController extends Controller
             payload: ['from' => $previous, 'to' => $validated['channel']],
         );
 
-        return back()->with(['alert' => 'Notification preference updated.', 'type' => 'success']);
+        return back()->with(['alert' => 'The notification preference was updated.', 'type' => 'success']);
     }
 }

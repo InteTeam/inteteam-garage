@@ -123,7 +123,7 @@ class CheckJobTimeoutsTest extends TestCase
 
     private function createJobInState(string $state, int $hoursAgo): RepairJob
     {
-        $job = RepairJob::withoutGlobalScopes()->create([
+        $job = RepairJob::withoutGlobalScopes()->forceCreate([
             'garage_id' => $this->garage->id,
             'vehicle_id' => $this->vehicle->id,
             'state' => $state,

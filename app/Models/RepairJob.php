@@ -78,7 +78,6 @@ final class RepairJob extends Model
     protected $fillable = [
         'garage_id',
         'vehicle_id',
-        'state',
         'payment_reference',
         'payment_confirmed_at',
     ];

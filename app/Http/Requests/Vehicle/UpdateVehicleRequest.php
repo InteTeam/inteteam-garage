@@ -16,7 +16,6 @@ final class UpdateVehicleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'garage_id' => ['sometimes', 'ulid'],
             'crm_customer_id' => ['sometimes', 'string', 'max:255'],
             'registration' => ['sometimes', 'string', 'max:255'],
             'make' => ['sometimes', 'string', 'max:255'],

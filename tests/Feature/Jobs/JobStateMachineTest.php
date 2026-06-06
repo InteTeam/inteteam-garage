@@ -50,7 +50,7 @@ class JobStateMachineTest extends TestCase
             'model' => 'Focus',
         ]);
 
-        $this->job = RepairJob::withoutGlobalScopes()->create([
+        $this->job = RepairJob::withoutGlobalScopes()->forceCreate([
             'garage_id' => $this->garage->id,
             'vehicle_id' => $vehicle->id,
             'state' => RepairJob::STATE_CREATED,
@@ -80,7 +80,8 @@ class JobStateMachineTest extends TestCase
 
     public function test_cannot_send_estimate_without_line_items(): void
     {
-        $this->job->update(['state' => RepairJob::STATE_IN_PROGRESS]);
+        $this->job->state = RepairJob::STATE_IN_PROGRESS;
+        $this->job->save();
 
         Estimate::withoutGlobalScopes()->create([
             'garage_id' => $this->garage->id,
@@ -96,7 +97,8 @@ class JobStateMachineTest extends TestCase
 
     public function test_can_send_estimate_with_line_items(): void
     {
-        $this->job->update(['state' => RepairJob::STATE_IN_PROGRESS]);
+        $this->job->state = RepairJob::STATE_IN_PROGRESS;
+        $this->job->save();
 
         $estimate = Estimate::withoutGlobalScopes()->create([
             'garage_id' => $this->garage->id,
@@ -120,7 +122,8 @@ class JobStateMachineTest extends TestCase
 
     public function test_cannot_complete_with_pending_line_items(): void
     {
-        $this->job->update(['state' => RepairJob::STATE_APPROVED]);
+        $this->job->state = RepairJob::STATE_APPROVED;
+        $this->job->save();
 
         $estimate = Estimate::withoutGlobalScopes()->create([
             'garage_id' => $this->garage->id,
@@ -144,7 +147,8 @@ class JobStateMachineTest extends TestCase
 
     public function test_cannot_collect_without_handover(): void
     {
-        $this->job->update(['state' => RepairJob::STATE_AWAITING_COLLECTION]);
+        $this->job->state = RepairJob::STATE_AWAITING_COLLECTION;
+        $this->job->save();
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessageMatches('/handover inspection/');
@@ -155,7 +159,8 @@ class JobStateMachineTest extends TestCase
     public function test_cannot_collect_without_payment_when_enabled(): void
     {
         $this->garage->update(['online_payment_enabled' => true]);
-        $this->job->update(['state' => RepairJob::STATE_AWAITING_COLLECTION]);
+        $this->job->state = RepairJob::STATE_AWAITING_COLLECTION;
+        $this->job->save();
 
         HandoverInspection::withoutGlobalScopes()->create([
             'garage_id' => $this->garage->id,
@@ -173,10 +178,9 @@ class JobStateMachineTest extends TestCase
     public function test_can_collect_with_handover_and_payment(): void
     {
         $this->garage->update(['online_payment_enabled' => true]);
-        $this->job->update([
-            'state' => RepairJob::STATE_AWAITING_COLLECTION,
-            'payment_confirmed_at' => now(),
-        ]);
+        $this->job->state = RepairJob::STATE_AWAITING_COLLECTION;
+        $this->job->payment_confirmed_at = now();
+        $this->job->save();
 
         HandoverInspection::withoutGlobalScopes()->create([
             'garage_id' => $this->garage->id,
@@ -193,7 +197,8 @@ class JobStateMachineTest extends TestCase
 
     public function test_can_collect_without_payment_when_disabled(): void
     {
-        $this->job->update(['state' => RepairJob::STATE_AWAITING_COLLECTION]);
+        $this->job->state = RepairJob::STATE_AWAITING_COLLECTION;
+        $this->job->save();
 
         HandoverInspection::withoutGlobalScopes()->create([
             'garage_id' => $this->garage->id,

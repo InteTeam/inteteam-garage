@@ -38,6 +38,6 @@ final class PortalLinkController extends Controller
 
         $this->tokenService->regenerate($job);
 
-        return back()->with(['alert' => 'Portal link regenerated.', 'type' => 'success']);
+        return back()->with(['alert' => 'The portal link was regenerated.', 'type' => 'success']);
     }
 }

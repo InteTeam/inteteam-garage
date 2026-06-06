@@ -47,7 +47,7 @@ class StageLockTest extends TestCase
             'model' => 'A4',
         ]);
 
-        $this->job = RepairJob::withoutGlobalScopes()->create([
+        $this->job = RepairJob::withoutGlobalScopes()->forceCreate([
             'garage_id' => $this->garage->id,
             'vehicle_id' => $vehicle->id,
             'state' => RepairJob::STATE_IN_PROGRESS,

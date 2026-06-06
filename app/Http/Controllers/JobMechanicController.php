@@ -21,6 +21,6 @@ final class JobMechanicController extends Controller
 
         $job->mechanics()->sync($validated['mechanic_ids']);
 
-        return back()->with(['alert' => 'Mechanics updated.', 'type' => 'success']);
+        return back()->with(['alert' => 'The mechanic assignments were updated.', 'type' => 'success']);
     }
 }

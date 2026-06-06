@@ -16,8 +16,7 @@ final class UpdateMechanicRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'garage_id' => ['sometimes', 'ulid'],
-            'user_id' => ['sometimes', 'ulid'],
+            'user_id' => ['sometimes', 'integer', 'exists:users,id'],
             'role' => ['sometimes', 'string', 'max:255'],
             'is_active' => ['sometimes', 'boolean'],
         ];

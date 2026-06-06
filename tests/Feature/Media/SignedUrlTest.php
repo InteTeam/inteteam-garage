@@ -41,7 +41,7 @@ class SignedUrlTest extends TestCase
             'model' => '3 Series',
         ]);
 
-        $job = RepairJob::withoutGlobalScopes()->create([
+        $job = RepairJob::withoutGlobalScopes()->forceCreate([
             'garage_id' => $garage->id,
             'vehicle_id' => $vehicle->id,
             'state' => RepairJob::STATE_IN_PROGRESS,

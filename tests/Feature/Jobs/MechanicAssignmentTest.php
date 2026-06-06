@@ -41,7 +41,7 @@ final class MechanicAssignmentTest extends TestCase
             'model' => 'Transit',
         ]);
 
-        $this->job = RepairJob::withoutGlobalScopes()->create([
+        $this->job = RepairJob::withoutGlobalScopes()->forceCreate([
             'garage_id' => $this->garage->id,
             'vehicle_id' => $vehicle->id,
             'state' => RepairJob::STATE_CREATED,
@@ -143,7 +143,7 @@ final class MechanicAssignmentTest extends TestCase
     {
         $mechanic = $this->makeMechanic('user-multi-job');
 
-        $secondJob = RepairJob::withoutGlobalScopes()->create([
+        $secondJob = RepairJob::withoutGlobalScopes()->forceCreate([
             'garage_id' => $this->garage->id,
             'vehicle_id' => $this->job->vehicle_id,
             'state' => RepairJob::STATE_CREATED,

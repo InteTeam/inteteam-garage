@@ -16,8 +16,7 @@ final class StoreMechanicRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'garage_id' => ['required', 'ulid'],
-            'user_id' => ['required', 'ulid'],
+            'user_id' => ['required', 'integer', 'exists:users,id'],
             'role' => ['required', 'string', 'max:255'],
             'is_active' => ['required', 'boolean'],
         ];

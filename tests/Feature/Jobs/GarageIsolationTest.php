@@ -29,7 +29,7 @@ class GarageIsolationTest extends TestCase
             'model' => '3 Series',
         ]);
 
-        $job = RepairJob::withoutGlobalScopes()->create([
+        $job = RepairJob::withoutGlobalScopes()->forceCreate([
             'garage_id' => $garage2->id,
             'vehicle_id' => $vehicle->id,
             'state' => RepairJob::STATE_CREATED,
@@ -54,7 +54,7 @@ class GarageIsolationTest extends TestCase
             'model' => 'Astra',
         ]);
 
-        RepairJob::withoutGlobalScopes()->create([
+        RepairJob::withoutGlobalScopes()->forceCreate([
             'garage_id' => $garage->id,
             'vehicle_id' => $vehicle->id,
             'state' => RepairJob::STATE_CREATED,

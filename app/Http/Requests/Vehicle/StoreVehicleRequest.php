@@ -16,7 +16,6 @@ final class StoreVehicleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'garage_id' => ['required', 'ulid'],
             'crm_customer_id' => ['required', 'string', 'max:255'],
             'registration' => ['required', 'string', 'max:255'],
             'make' => ['required', 'string', 'max:255'],

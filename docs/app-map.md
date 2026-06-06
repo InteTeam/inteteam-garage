@@ -136,7 +136,7 @@ Lock is idempotent (`forceFill(['locked_at' => now()])` only when `locked_at IS 
 | `EVENT_MECHANIC_RESPONSE` | Mechanic responds to question |
 | `EVENT_ESTIMATE_SENT` | `EstimateController@send` |
 | `EVENT_SCOPE_CHANGE` | Mechanic finds extra work mid-repair |
-| `EVENT_PREFERENCE_CHANGED` | Customer/admin changes notification channel |
+| `EVENT_PREFERENCE_CHANGED` | Customer/admin changes notification channel · also fires per non-collected job when admin toggles `Garage.online_payment_enabled` (via `GarageSettingsService`) |
 | `EVENT_HANDOVER_SUBMITTED` | Customer submits handover inspection |
 | `EVENT_PAYMENT_REQUESTED` / `_CONFIRMED` | `CrmPaymentService` / `PaymentWebhookController` |
 | `EVENT_TIMEOUT_ALERT` | `CheckJobTimeouts` finds blocked job >24h |
@@ -165,6 +165,24 @@ Garage
 
 ---
 
+## Services
+
+All business logic lives in `app/Services/`. Controllers delegate to services; services own DB writes, relationship loading, and external API calls. Each service is `final` and under the 250-line cap.
+
+| Service | Owns |
+|---|---|
+| `JobStateMachine` | State transitions + guards (`guardAwaitingApproval`, `guardCompleted`, `guardCollected`); writes `JobStateTransition`; auto-locks stages on transition |
+| `ApprovalEventService` | Only writer of `ApprovalEvent`. `record()` + `recordBySystem()` only |
+| `EstimateService` | CRUD on `Estimate`. `update()` **throws** when `Estimate::hasCustomerResponse()` is true — must create a new revision instead |
+| `SignedPortalTokenService` | Generate / regenerate / revoke `SignedPortalToken`; builds `portal.show` URL |
+| `GarageSettingsService` | Persists garage settings; on `online_payment_enabled` toggle change appends `EVENT_PREFERENCE_CHANGED` per non-collected job |
+| `MechanicService`, `VehicleService`, `JobStageService` | Thin CRUD wrappers over their models |
+| `GcsService` | Only path to GCS — upload, signed URL generation, object naming |
+| `CrmApiService` | Bottom-layer HTTP client to CRM (`X-Internal-Secret`); customers + notifications + payment requests |
+| `CrmNotificationService` | Job-event-shaped wrappers over `CrmApiService::sendNotification()` |
+| `CrmPaymentService` | `calculateAmount()` (approved line items only), `requestPayment()` (calls CRM + logs `EVENT_PAYMENT_REQUESTED`), `confirmPayment()` |
+| `TranslationService` | OpenAI wrapper with embedded glossary + 24h cache per (text hash, locale pair) |
+
 ## External integrations
 
 | System | Service | Auth |
@@ -187,6 +205,8 @@ Garage
 - **State change is service-only.** Never `$job->update(['state' => ...])`. Always `JobStateMachine::transition($job, $toState)`. State is excluded from `$fillable` and guards run on transition.
 - **`JobStage` lock is one-way.** Auto-lock fires on transition; manual unlock not implemented. Adding a stage to a job past `awaiting_approval` will auto-lock it on the next transition.
 - **Portal token scope.** `ValidatePortalToken` middleware binds the matching `RepairJob` to the route — portal endpoints only ever see the one job their token belongs to. Token A can never load job B even if both belong to the same garage.
+- **Estimate immutability after customer response.** `EstimateService::update()` throws `RuntimeException` if `Estimate::hasCustomerResponse()` is true (any line item approved/declined). To change scope after the customer has responded, create a new `Estimate` row with `revision_number = previous + 1` — the controller's `store()` already does this.
+- **`Mechanic`/`Vehicle` Form Requests do not accept `garage_id` from the client.** `garage_id` is set server-side via the `HasGarageScope::creating` hook from `session('current_garage_id')`. Posting `garage_id` in the payload has no effect — defence-in-depth against tenant spoofing.
 
 ---
 

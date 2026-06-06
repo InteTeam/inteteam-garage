@@ -34,7 +34,7 @@ final class VehicleController extends Controller
         $this->vehicleService->create($request->validated());
 
         return redirect()->route('vehicles.index')
-            ->with(['alert' => 'Vehicle created.', 'type' => 'success']);
+            ->with(['alert' => 'The vehicle was created.', 'type' => 'success']);
     }
 
     public function show(Vehicle $vehicle): Response
@@ -53,7 +53,7 @@ final class VehicleController extends Controller
         $this->vehicleService->update($vehicle, $request->validated());
 
         return redirect()->route('vehicles.index')
-            ->with(['alert' => 'Vehicle updated.', 'type' => 'success']);
+            ->with(['alert' => 'The vehicle was updated.', 'type' => 'success']);
     }
 
     public function destroy(Vehicle $vehicle): RedirectResponse
@@ -63,6 +63,6 @@ final class VehicleController extends Controller
         $this->vehicleService->delete($vehicle);
 
         return redirect()->route('vehicles.index')
-            ->with(['alert' => 'Vehicle deleted.', 'type' => 'success']);
+            ->with(['alert' => 'The vehicle was deleted.', 'type' => 'success']);
     }
 }

@@ -50,6 +50,6 @@ final class PortalPaymentController extends Controller
 
         $this->paymentService->requestPayment($job);
 
-        return back()->with(['alert' => 'Payment request initiated.', 'type' => 'success']);
+        return back()->with(['alert' => 'The payment request was initiated.', 'type' => 'success']);
     }
 }

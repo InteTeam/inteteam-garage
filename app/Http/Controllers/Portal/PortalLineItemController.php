@@ -34,7 +34,7 @@ final class PortalLineItemController extends Controller
             payload: ['line_item_id' => $lineItem->id, 'description' => $lineItem->description],
         );
 
-        return back()->with(['alert' => 'Item approved.', 'type' => 'success']);
+        return back()->with(['alert' => 'The item was approved.', 'type' => 'success']);
     }
 
     public function decline(Request $request, string $token, LineItem $lineItem): RedirectResponse
@@ -59,7 +59,7 @@ final class PortalLineItemController extends Controller
             payload: ['line_item_id' => $lineItem->id, 'notes' => $validated['notes']],
         );
 
-        return back()->with(['alert' => 'Item declined.', 'type' => 'success']);
+        return back()->with(['alert' => 'The item was declined.', 'type' => 'success']);
     }
 
     public function question(Request $request, string $token, LineItem $lineItem): RedirectResponse
@@ -79,7 +79,7 @@ final class PortalLineItemController extends Controller
             payload: ['line_item_id' => $lineItem->id, 'message' => $validated['message']],
         );
 
-        return back()->with(['alert' => 'Question sent to mechanic.', 'type' => 'success']);
+        return back()->with(['alert' => 'The question was sent to the mechanic.', 'type' => 'success']);
     }
 
     private function ensureLineItemBelongsToJob(LineItem $lineItem, RepairJob $job): void

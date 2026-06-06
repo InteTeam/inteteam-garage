@@ -34,7 +34,7 @@ final class MechanicController extends Controller
         $this->mechanicService->create($request->validated());
 
         return redirect()->route('mechanics.index')
-            ->with(['alert' => 'Mechanic created.', 'type' => 'success']);
+            ->with(['alert' => 'The mechanic was created.', 'type' => 'success']);
     }
 
     public function show(Mechanic $mechanic): Response
@@ -53,7 +53,7 @@ final class MechanicController extends Controller
         $this->mechanicService->update($mechanic, $request->validated());
 
         return redirect()->route('mechanics.index')
-            ->with(['alert' => 'Mechanic updated.', 'type' => 'success']);
+            ->with(['alert' => 'The mechanic was updated.', 'type' => 'success']);
     }
 
     public function destroy(Mechanic $mechanic): RedirectResponse
@@ -63,6 +63,6 @@ final class MechanicController extends Controller
         $this->mechanicService->delete($mechanic);
 
         return redirect()->route('mechanics.index')
-            ->with(['alert' => 'Mechanic deleted.', 'type' => 'success']);
+            ->with(['alert' => 'The mechanic was deleted.', 'type' => 'success']);
     }
 }

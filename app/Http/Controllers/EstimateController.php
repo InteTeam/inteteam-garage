@@ -49,10 +49,10 @@ final class EstimateController extends Controller
             'revision_number' => $nextRevision,
         ]);
 
-        return back()->with(['alert' => 'Estimate created.', 'type' => 'success']);
+        return back()->with(['alert' => 'The estimate was created.', 'type' => 'success']);
     }
 
-    public function show(Estimate $estimate): Response
+    public function show(RepairJob $job, Estimate $estimate): Response
     {
         $this->authorize('view', $estimate);
 
@@ -61,22 +61,22 @@ final class EstimateController extends Controller
         ]);
     }
 
-    public function update(UpdateEstimateRequest $request, Estimate $estimate): RedirectResponse
+    public function update(UpdateEstimateRequest $request, RepairJob $job, Estimate $estimate): RedirectResponse
     {
         $this->authorize('update', $estimate);
 
         $this->estimateService->update($estimate, $request->validated());
 
-        return back()->with(['alert' => 'Estimate updated.', 'type' => 'success']);
+        return back()->with(['alert' => 'The estimate was updated.', 'type' => 'success']);
     }
 
-    public function destroy(Estimate $estimate): RedirectResponse
+    public function destroy(RepairJob $job, Estimate $estimate): RedirectResponse
     {
         $this->authorize('delete', $estimate);
 
         $this->estimateService->delete($estimate);
 
-        return back()->with(['alert' => 'Estimate deleted.', 'type' => 'success']);
+        return back()->with(['alert' => 'The estimate was deleted.', 'type' => 'success']);
     }
 
     public function send(RepairJob $job, Estimate $estimate): RedirectResponse
@@ -89,7 +89,7 @@ final class EstimateController extends Controller
 
         $this->notifications->notifyEstimateSent($job);
 
-        return back()->with(['alert' => 'Estimate sent to customer.', 'type' => 'success']);
+        return back()->with(['alert' => 'The estimate was sent to the customer.', 'type' => 'success']);
     }
 
     public function previewTranslation(RepairJob $job, Estimate $estimate): JsonResponse

@@ -33,7 +33,7 @@ final class JobStageController extends Controller
 
         $this->jobStageService->create($request->validated());
 
-        return back()->with(['alert' => 'Stage created.', 'type' => 'success']);
+        return back()->with(['alert' => 'The stage was created.', 'type' => 'success']);
     }
 
     public function show(JobStage $jobStage): Response
@@ -51,7 +51,7 @@ final class JobStageController extends Controller
 
         $this->jobStageService->update($jobStage, $request->validated());
 
-        return back()->with(['alert' => 'Stage updated.', 'type' => 'success']);
+        return back()->with(['alert' => 'The stage was updated.', 'type' => 'success']);
     }
 
     public function destroy(JobStage $jobStage): RedirectResponse
@@ -60,6 +60,6 @@ final class JobStageController extends Controller
 
         $this->jobStageService->delete($jobStage);
 
-        return back()->with(['alert' => 'Stage deleted.', 'type' => 'success']);
+        return back()->with(['alert' => 'The stage was deleted.', 'type' => 'success']);
     }
 }

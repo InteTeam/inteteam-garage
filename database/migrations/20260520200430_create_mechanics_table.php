@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('mechanics', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->foreignUlid('garage_id')->constrained()->cascadeOnDelete();
-            $table->unsignedBigInteger('user_id');
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->string('role')->default('mechanic');
             $table->boolean('is_active')->default(true);
             $table->timestamps();
