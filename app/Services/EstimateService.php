@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\Estimate;
 use Illuminate\Database\Eloquent\Collection;
+use RuntimeException;
 
 final class EstimateService
 {
@@ -23,6 +24,12 @@ final class EstimateService
 
     public function update(Estimate $estimate, array $data): Estimate
     {
+        if ($estimate->hasCustomerResponse()) {
+            throw new RuntimeException(
+                'Cannot modify estimate after customer response. Create a new revision instead.'
+            );
+        }
+
         $estimate->update($data);
 
         return $estimate->fresh();
