@@ -16,11 +16,9 @@ final class StoreJobStageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'garage_id' => ['required', 'ulid'],
-            'job_id' => ['required', 'ulid'],
             'name' => ['required', 'string', 'max:255'],
             'sort_order' => ['required', 'integer'],
-            'locked_at' => ['required', 'datetime'],
+            'locked_at' => ['nullable', 'date'],
         ];
     }
 }

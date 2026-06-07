@@ -16,10 +16,8 @@ final class UpdateEstimateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'garage_id' => ['sometimes', 'ulid'],
-            'job_id' => ['sometimes', 'ulid'],
             'revision_number' => ['sometimes', 'integer'],
-            'sent_at' => ['sometimes', 'datetime'],
+            'sent_at' => ['nullable', 'date'],
         ];
     }
 }

@@ -34,5 +34,4 @@ final class GuestRedirectTest extends TestCase
         yield 'mechanics create' => ['GET', '/mechanics/create'];
         yield 'settings index' => ['GET', '/settings'];
     }
-
 }

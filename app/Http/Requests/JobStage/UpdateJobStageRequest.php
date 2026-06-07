@@ -16,11 +16,9 @@ final class UpdateJobStageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'garage_id' => ['sometimes', 'ulid'],
-            'job_id' => ['sometimes', 'ulid'],
             'name' => ['sometimes', 'string', 'max:255'],
             'sort_order' => ['sometimes', 'integer'],
-            'locked_at' => ['sometimes', 'datetime'],
+            'locked_at' => ['nullable', 'date'],
         ];
     }
 }

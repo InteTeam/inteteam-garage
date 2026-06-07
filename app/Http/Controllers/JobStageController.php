@@ -7,10 +7,12 @@ namespace App\Http\Controllers;
 use App\Http\Requests\JobStage\StoreJobStageRequest;
 use App\Http\Requests\JobStage\UpdateJobStageRequest;
 use App\Models\JobStage;
+use App\Models\RepairJob;
 use App\Services\JobStageService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
 
 final class JobStageController extends Controller
 {
@@ -18,48 +20,63 @@ final class JobStageController extends Controller
         private readonly JobStageService $jobStageService,
     ) {}
 
-    public function index(): Response
+    public function index(RepairJob $job): Response
     {
-        $this->authorize('viewAny', JobStage::class);
+        $this->authorize('view', $job);
 
         return Inertia::render('JobStages/Index', [
-            'jobStages' => $this->jobStageService->getAll(),
+            'job' => $job,
+            'jobStages' => $job->stages,
         ]);
     }
 
-    public function store(StoreJobStageRequest $request): RedirectResponse
+    public function store(StoreJobStageRequest $request, RepairJob $job): RedirectResponse
     {
-        $this->authorize('create', JobStage::class);
+        $this->authorize('update', $job);
 
-        $this->jobStageService->create($request->validated());
+        $this->jobStageService->create([
+            ...$request->validated(),
+            'job_id' => $job->id,
+        ]);
 
         return back()->with(['alert' => 'The stage was created.', 'type' => 'success']);
     }
 
-    public function show(JobStage $jobStage): Response
+    public function show(RepairJob $job, JobStage $stage): Response
     {
-        $this->authorize('view', $jobStage);
+        $this->authorize('view', $job);
+        $this->ensureStageBelongsToJob($stage, $job);
 
         return Inertia::render('JobStages/Show', [
-            'jobStage' => $jobStage,
+            'job' => $job,
+            'jobStage' => $stage,
         ]);
     }
 
-    public function update(UpdateJobStageRequest $request, JobStage $jobStage): RedirectResponse
+    public function update(UpdateJobStageRequest $request, RepairJob $job, JobStage $stage): RedirectResponse
     {
-        $this->authorize('update', $jobStage);
+        $this->authorize('update', $job);
+        $this->ensureStageBelongsToJob($stage, $job);
 
-        $this->jobStageService->update($jobStage, $request->validated());
+        $this->jobStageService->update($stage, $request->validated());
 
         return back()->with(['alert' => 'The stage was updated.', 'type' => 'success']);
     }
 
-    public function destroy(JobStage $jobStage): RedirectResponse
+    public function destroy(RepairJob $job, JobStage $stage): RedirectResponse
     {
-        $this->authorize('delete', $jobStage);
+        $this->authorize('update', $job);
+        $this->ensureStageBelongsToJob($stage, $job);
 
-        $this->jobStageService->delete($jobStage);
+        $this->jobStageService->delete($stage);
 
         return back()->with(['alert' => 'The stage was deleted.', 'type' => 'success']);
+    }
+
+    private function ensureStageBelongsToJob(JobStage $stage, RepairJob $job): void
+    {
+        if ($stage->job_id !== $job->id) {
+            throw new RuntimeException('Stage does not belong to this job.');
+        }
     }
 }
