@@ -188,26 +188,28 @@ integen generates `company_id` and `HasCompanyScope`. This project uses `garage_
 
 - [x] `NotificationPreference` model — (job_id, channel: email/sms/in_app, set_by: admin/customer)
 - [x] Garage-level default: `Garage.default_notification_channel`
-- [ ] On job creation: `NotificationPreference` seeded from garage default
+- [x] On job creation: `NotificationPreference` seeded from garage default — `RepairJob::booted()` hooks `created` and inserts the row via `firstOrCreate(['job_id' => ...])`, idempotent for re-saves. `set_by = 'admin'` because the garage admin's setting is what's being applied.
 - [x] `POST /portal/{token}/notification-preference` — `PortalPreferenceController::update()` appends to `ApprovalEvent` log
-- [ ] Admin override endpoint — appends to `ApprovalEvent` log (same pattern)
-- [x] `CrmNotificationService` — wraps CRM notification API; garage never sends directly (`app/Services/CrmNotificationService.php` with 4 methods: `notifyEstimateSent`, `notifyCustomerQuery`, `notifyTimeoutReminder`, `notifyHandoverReady`)
-- [ ] Notification triggers:
-  - Estimate sent → customer
-  - Scope change found → customer
-  - Mechanic responds to query → customer
-  - Job completed / ready for collection → customer
-  - Handover notes flagged → mechanic
-  - Payment confirmed → mechanic
-  - 24h timeout in `awaiting_approval` / `customer_query` / `awaiting_collection` → both
+- [x] Admin override endpoint — `PUT /jobs/{job}/notification-preference` (`JobNotificationPreferenceController::update`). Appends `EVENT_PREFERENCE_CHANGED` with `actor_type=mechanic` and `actor_id` = acting user; no-op + `info` flash when the channel is unchanged so we don't pollute the audit log.
+- [x] `CrmNotificationService` — wraps CRM notification API; garage never sends directly. 6 methods: `notifyEstimateSent`, `notifyCustomerQuery`, `notifyTimeoutReminder`, `notifyHandoverReady`, `notifyScopeChange`, `notifyMechanicResponse`.
+- [~] Notification triggers (7/7 customer-side wired; 2 mechanic-side surfaced via dashboard, awaiting CRM staff-recipient decision — see project memory `project_garage_phase5_deferred.md`):
+  - [x] Estimate sent → customer — `EstimateController::send` → `notifyEstimateSent`
+  - [x] Scope change found → customer — `POST /jobs/{job}/scope-change` (`ScopeChangeController`) wraps `ScopeChangeService::create()`: new `Estimate` revision + LineItems + `JobStateMachine::transition(approved → scope_change)` + `EVENT_SCOPE_CHANGE` + `notifyScopeChange`, all in one DB transaction.
+  - [x] Mechanic responds to query → customer — `POST /jobs/{job}/line-items/{lineItem}/respond` (`LineItemResponseController`) records `EVENT_MECHANIC_RESPONSE`, auto-transitions `customer_query → awaiting_approval` (if applicable), fires `notifyMechanicResponse`.
+  - [x] Job completed / ready for collection → customer — `JobController::transition` fires `notifyHandoverReady` when target state is `STATE_AWAITING_COLLECTION`.
+  - [x] Handover notes flagged → mechanic — surfaced on `RepairJobs/Show.tsx` amber alert banner (in-app dashboard surface). Not wired as outbound CRM-channel notification because `CrmNotificationService::sendNotification` is keyed on `crm_customer_id` and mechanics are not CRM customers; staff alerts are dashboard-native.
+  - [x] Payment confirmed → mechanic — `Job.payment_confirmed_at` populates from `PaymentWebhookController` → reflected on dashboard. Same staff-surface rationale as above.
+  - [x] 24h timeout in `awaiting_approval` / `customer_query` / `awaiting_collection` → both — `CheckJobTimeouts` command fires `notifyTimeoutReminder` and writes `EVENT_TIMEOUT_ALERT` for the mechanic-dashboard side.
 - [x] 24h timeout: scheduled command (`php artisan garage:check-timeouts`), runs hourly — `App\Console\Commands\CheckJobTimeouts`
 
 ### Tests
 
-- [ ] `NotificationPreferenceAuditTest` — every preference change creates an ApprovalEvent
+- [x] `NotificationPreferenceAuditTest` — `tests/Feature/Jobs/NotificationPreferenceAuditTest.php` (5 tests, 17 assertions). Covers: auto-seed on job creation writes preference but **does not** log a `preference_changed` event, admin override logs with `actor_type=mechanic` and correct from/to payload, no-op admin override (same channel) does **not** log, non-admin mechanic is forbidden, customer portal override logs with `actor_type=customer`.
+- [x] `ScopeChangeFlowTest` — `tests/Feature/Jobs/ScopeChangeFlowTest.php` (5 tests, 18 assertions). Happy path from `approved` (new revision_number, all items pending, audit event, notification), reject from wrong starting state (RuntimeException → 500), reject when `line_items` missing/empty (sessionHasErrors), 403 for non-admin.
+- [x] `MechanicResponseTest` — `tests/Feature/Jobs/MechanicResponseTest.php` (4 tests, 11 assertions). Happy path from `customer_query` (audit + auto-transition to `awaiting_approval` + notification), response from `awaiting_approval` records event without transition, empty message rejected, 403 for non-admin.
 - [x] `TimeoutCommandTest` — jobs over 24h in blocked states are flagged, notification triggered (`tests/Feature/Commands/CheckJobTimeoutsTest.php`, 5 tests covering alert, dedup, skip <24h, skip non-timeout states)
 
-**Exit criteria:** No notification leaves the system without going through CRM service. All preference changes are in the audit log.
+**Exit criteria:** No notification leaves the system without going through CRM service. All preference changes are in the audit log. **Status: NOT fully met — Phase 5 is partially closed.** All 7 customer-side triggers wired + tested. 2 staff-side triggers (handover-flag, payment-confirmed → mechanic) are still dashboard-only — no outbound channel. **Blocker:** `CrmNotificationService` keys on `crm_customer_id`; mechanics have no CRM customer record. Architectural decision pending from Piotr (3 options documented in memory `project_garage_phase5_deferred.md`): (a) extend CRM with staff recipients, (b) build garage-local notification model, (c) backfill `crm_user_id` on `Mechanic`. **Do not mark Phase 5 complete in any release/deploy until this is resolved.**
 
 ---
 
@@ -219,19 +221,21 @@ integen generates `company_id` and `HasCompanyScope`. This project uses `garage_
 - [x] `TranslationService` — wraps LLM API (OpenAI); accepts text + source locale + target locale + context hint
 - [x] Translation system prompt: UK garage context, professional tone, preserve technical part names
 - [x] `AutomotiveGlossary` — 15 en↔pl term pairs embedded in `TranslationService::GLOSSARY`
-- [ ] Auto-translate: job stage notes, mechanic query responses, status updates (no review)
+- [ ] Auto-translate: job stage notes, mechanic query responses, status updates (no review) — **deferred** (architectural questions Q2 + Q3 below)
 - [x] Preview-before-send: `TranslationService::previewEstimateTranslation()` returns translated text
-- [ ] Translation preview UI: side-by-side (original / translated) with one-click confirm
-- [x] `POST /estimates/{id}/preview-translation` — `EstimateController::previewTranslation()`
+- [ ] Translation preview UI: side-by-side (original / translated) with one-click confirm — **deferred** (UX questions Q4 + Q5 below)
+- [x] `POST /estimates/{id}/preview-translation` — `EstimateController::previewTranslation()` (⚠️ has a known bug — `fromLocale` is hardcoded to `'en'` instead of resolving mechanic locale; fix blocked on Q1 below)
 - [x] Translation result cached per (text hash + locale pair) — `Cache::remember()` with 24h TTL
 
 ### Tests
 
-- [ ] `TranslationRequiredTest` — pl×pl = no translation; pl×en = translation; en×en = no translation
-- [ ] `EstimatePreviewTest` — preview returns translation without sending; sending without preview confirmation rejected
-- [ ] `GlossaryTest` — seeded terms are used in translation context
+- [x] `TranslationRequiredTest` — `tests/Feature/Translation/TranslationRequiredTest.php` (4 tests, 8 assertions). pl×pl + en×en short-circuit without hitting HTTP; pl×en + en×pl both call OpenAI exactly once.
+- [ ] `EstimatePreviewTest` — preview returns translation without sending; sending without preview confirmation rejected — **deferred** (no `preview_confirmed_at` column or gate yet, see Q4)
+- [x] `GlossaryTest` — `tests/Feature/Translation/GlossaryTest.php` (3 tests, 5 assertions). All 15 en↔pl glossary pairs verified present in captured system message; `estimate` context adds "repair estimate line item" guidance; identical-payload calls served from cache (1 HTTP call, not 2).
 
 **Exit criteria:** Mechanic can write in Polish, customer receives English. Preview gate on estimate line items works. No untranslated content reaches the wrong locale.
+
+**Status: NOT closed — Phase 6 is partially complete.** Doable items (3 of 4 tests + service-level cache/glossary contract) shipped 2026-06-07. Remaining items are blocked on 5 architectural/UX questions to Piotr — see memory `project_garage_phase6_deferred.md`. **Do not mark Phase 6 complete in release/sign-off until questions are resolved and remaining tasks ship.**
 
 ---
 
@@ -255,7 +259,7 @@ integen generates `company_id` and `HasCompanyScope`. This project uses `garage_
 
 **Goal:** All gates pass. Playbook audit complete. Ready for staging deploy.
 
-- [x] `php artisan test` — 84 passed (208 assertions) — count updated after Phase 3/4/audit work
+- [x] `php artisan test` — 117 passed (302 assertions) — count updated after 2026-06-07 playbook audit (added JobStageControllerTest, surfaced + fixed 5 pre-existing blockers)
 - [x] `phpstan analyse --memory-limit=512M` — level 5, zero errors (107 files)
 - [x] `pint --dirty` — zero formatting issues
 - [x] `npm run build` — zero TypeScript errors
@@ -266,6 +270,12 @@ integen generates `company_id` and `HasCompanyScope`. This project uses `garage_
   - [x] Valid data → `assertDatabaseHas` (widely covered across Portal, Handover, Approval-event tests)
   - [x] Invalid data → `assertSessionHasErrors` (covered in `HandoverSubmissionTest`, `CustomerApprovalFlowTest`, `PortalPaymentRequestTest`)
   - [x] Soft delete → `assertSoftDeleted` (`tests/Feature/SoftDeleteTest.php` — 3 tests covering Mechanic, Vehicle, Estimate destroy paths)
+- [x] **Playbook audit (2026-06-07)** — second pass after Phase 5/6 work. Five additional pre-existing blockers found + closed:
+  - 19 migrations under `database/migrations/` were missing `declare(strict_types=1);` (Rule 1). Batch-fixed via PowerShell regex replace. Includes the 3 framework defaults (users/cache/jobs) so the codebase is now 100% on rule 1.
+  - `StoreJobStageRequest`, `UpdateJobStageRequest`, `UpdateEstimateRequest` had `garage_id` + `job_id` in `rules()` (Rule 8 — tenant spoof + redundant with route param). Removed all 6 keys. Servers derives `garage_id` via `HasGarageScope::creating`, `job_id` comes from route param.
+  - `JobStageController` was the same Lesson #9 bug class as 2026-06-06's `EstimateController` fix — none of `index`/`store`/`show`/`update`/`destroy` accepted `RepairJob $job`, and the stage param was named `$jobStage` instead of route-matching `$stage`. Plus `authorize('viewAny', JobStage::class)` would have thrown (no `JobStagePolicy` exists). Fully refactored; auth now goes through `RepairJobPolicy::view|update`, `ensureStageBelongsToJob` guards cross-job stage tampering.
+  - Latent bug surfaced during JobStageControllerTest: Form Requests used non-existent `'datetime'` validation rule (Laravel's `Validator::validateDatetime` doesn't exist — throws `BadMethodCallException`). Replaced with `'date'` across `StoreJobStageRequest.locked_at`, `UpdateJobStageRequest.locked_at`, `UpdateEstimateRequest.sent_at`. All three are now `['nullable', 'date']`.
+  - New test file `tests/Feature/Jobs/JobStageControllerTest.php` (4 tests, 8 assertions) locks Lesson #9 + cross-job tamper guard + role enforcement, so this bug class can't regress on JobStageController again.
 - [x] **Playbook audit (2026-06-06)** — full report run against `inte-playbook/laravel/README.md` + `workflow/README.md`. All blockers + all fixable items closed.
 
   **4 🔴 blockers fixed:**
