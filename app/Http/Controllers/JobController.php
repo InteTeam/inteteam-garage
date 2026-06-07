@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\RepairJob;
+use App\Services\CrmNotificationService;
 use App\Services\JobStateMachine;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,7 @@ final class JobController extends Controller
 {
     public function __construct(
         private readonly JobStateMachine $stateMachine,
+        private readonly CrmNotificationService $notifications,
     ) {}
 
     public function index(): Response
@@ -55,6 +57,10 @@ final class JobController extends Controller
         ]);
 
         $this->stateMachine->transition($job, $validated['state'], (string) $request->user()->id);
+
+        if ($validated['state'] === RepairJob::STATE_AWAITING_COLLECTION) {
+            $this->notifications->notifyHandoverReady($job->fresh());
+        }
 
         return back()->with(['alert' => 'The job status was updated.', 'type' => 'success']);
     }

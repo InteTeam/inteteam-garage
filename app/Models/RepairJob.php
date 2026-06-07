@@ -89,6 +89,27 @@ final class RepairJob extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        self::created(function (RepairJob $job): void {
+            /** @var Garage|null $garage */
+            $garage = Garage::withoutGlobalScopes()->find($job->garage_id);
+
+            if ($garage === null) {
+                return;
+            }
+
+            NotificationPreference::withoutGlobalScopes()->firstOrCreate(
+                ['job_id' => $job->id],
+                [
+                    'garage_id' => $job->garage_id,
+                    'channel' => $garage->default_notification_channel,
+                    'set_by' => 'admin',
+                ],
+            );
+        });
+    }
+
     public function garage(): BelongsTo
     {
         return $this->belongsTo(Garage::class);

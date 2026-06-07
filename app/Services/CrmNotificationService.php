@@ -68,6 +68,34 @@ final class CrmNotificationService
         );
     }
 
+    public function notifyScopeChange(RepairJob $job): void
+    {
+        $job->loadMissing(['vehicle', 'notificationPreference', 'garage']);
+        $vehicle = $job->vehicle;
+
+        $this->crm->sendNotification(
+            crmCustomerId: $vehicle->crm_customer_id,
+            channel: $this->resolveChannel($job),
+            subject: 'Additional work needed on your vehicle',
+            body: "While working on your {$vehicle->make} {$vehicle->model} ({$vehicle->registration}) we found additional work that needs your approval. Please review the new items in your portal.",
+            meta: ['job_id' => $job->id, 'trigger' => 'scope_change'],
+        );
+    }
+
+    public function notifyMechanicResponse(RepairJob $job, string $message): void
+    {
+        $job->loadMissing(['vehicle', 'notificationPreference', 'garage']);
+        $vehicle = $job->vehicle;
+
+        $this->crm->sendNotification(
+            crmCustomerId: $vehicle->crm_customer_id,
+            channel: $this->resolveChannel($job),
+            subject: 'A response from your mechanic',
+            body: "Your mechanic has replied about your {$vehicle->make} {$vehicle->model} ({$vehicle->registration}): {$message}",
+            meta: ['job_id' => $job->id, 'trigger' => 'mechanic_response'],
+        );
+    }
+
     private function resolveChannel(RepairJob $job): string
     {
         $pref = $job->notificationPreference;
