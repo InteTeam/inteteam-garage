@@ -17,12 +17,13 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property string $name
  * @property string $email
+ * @property string|null $crm_user_id
  * @property Carbon|null $email_verified_at
  * @property string $password
  * @property string|null $remember_token
  * @property-read Mechanic|null $mechanic
  */
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['name', 'email', 'crm_user_id', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 final class User extends Authenticatable
 {

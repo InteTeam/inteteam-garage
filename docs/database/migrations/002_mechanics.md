@@ -16,6 +16,7 @@ A `Mechanic` is the per-garage profile of a staff member. It links a global `Use
 | `garage_id` | ULID | no | — | FK → `garages.id` cascadeOnDelete |
 | `user_id` | unsignedBigInteger | no | — | Reference to `users.id` — **no FK constraint** (see Deviations) |
 | `role` | string | no | `mechanic` | One of `Mechanic::ROLES` |
+| `locale` | string(5) | yes | `null` | ISO 639-1 / `xx-XX`. Added via `016_mechanics_locale` (2026-06-08). `null` = inherit from `Garage.locale`. Resolution via `Mechanic::resolvedLocale()`. |
 | `is_active` | boolean | no | `true` | Suspend without deleting |
 | `created_at`, `updated_at` | timestamp | yes | — | |
 | `deleted_at` | timestamp | yes | — | `SoftDeletes` |
@@ -46,10 +47,10 @@ Garage ──hasMany──► Mechanic ──belongsTo──► User
 - Class: `App\Models\Mechanic` (final)
 - Traits: `HasUlids`, `HasGarageScope`, `SoftDeletes`, `HasFactory`
 - Policy: `#[UsePolicy(MechanicPolicy::class)]`
-- `$fillable`: `garage_id, user_id, role, is_active`
+- `$fillable`: `garage_id, user_id, role, locale, is_active`
 - `casts()`: `is_active => boolean`
 - Constants: `Mechanic::ROLE_GARAGE_ADMIN`, `Mechanic::ROLE_MECHANIC`, list in `Mechanic::ROLES`
-- Helper: `isAdmin(): bool`
+- Helpers: `isAdmin(): bool`, `resolvedLocale(): string`
 
 ## Constraints & Invariants
 

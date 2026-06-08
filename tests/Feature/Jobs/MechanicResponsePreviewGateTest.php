@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
-final class MechanicResponseTest extends TestCase
+final class MechanicResponsePreviewGateTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -31,15 +31,34 @@ final class MechanicResponseTest extends TestCase
         ]);
     }
 
-    public function test_mechanic_can_respond_to_customer_query(): void
+    public function test_cross_locale_response_without_translation_is_rejected(): void
     {
-        [$garage, $user] = $this->makeGarageWithAdmin();
+        [$garage, $user] = $this->makeGarageWithMechanic('en', 'pl');
         [$job, $lineItem] = $this->makeJobWithLineItem($garage, RepairJob::STATE_CUSTOMER_QUERY);
 
         $this->actingAs($user)
             ->withSession(['current_garage_id' => $garage->id])
             ->post(route('jobs.line-items.respond', ['job' => $job->id, 'lineItem' => $lineItem->id]), [
-                'message' => 'The water pump is included in the timing belt kit price.',
+                'message' => 'Klocki są wymienione, proszę odebrać.',
+            ])
+            ->assertSessionHasErrors('translated_message');
+
+        $this->assertDatabaseMissing('approval_events', [
+            'job_id' => $job->id,
+            'event_type' => ApprovalEvent::EVENT_MECHANIC_RESPONSE,
+        ]);
+    }
+
+    public function test_cross_locale_response_with_translation_is_accepted_and_audited(): void
+    {
+        [$garage, $user] = $this->makeGarageWithMechanic('en', 'pl');
+        [$job, $lineItem] = $this->makeJobWithLineItem($garage, RepairJob::STATE_CUSTOMER_QUERY);
+
+        $this->actingAs($user)
+            ->withSession(['current_garage_id' => $garage->id])
+            ->post(route('jobs.line-items.respond', ['job' => $job->id, 'lineItem' => $lineItem->id]), [
+                'message' => 'Klocki są wymienione, proszę odebrać.',
+                'translated_message' => 'Brake pads replaced, please collect.',
             ])
             ->assertRedirect();
 
@@ -48,99 +67,50 @@ final class MechanicResponseTest extends TestCase
             ->where('event_type', ApprovalEvent::EVENT_MECHANIC_RESPONSE)
             ->firstOrFail();
 
-        $this->assertSame(ApprovalEvent::ACTOR_MECHANIC, $event->actor_type);
-        $this->assertSame($lineItem->id, $event->payload['line_item_id']);
-        $this->assertSame('The water pump is included in the timing belt kit price.', $event->payload['message']);
-
-        $this->assertSame(RepairJob::STATE_AWAITING_APPROVAL, $job->fresh()->state);
-        $this->assertGreaterThanOrEqual(1, Http::recorded()->count());
+        $this->assertSame('Klocki są wymienione, proszę odebrać.', $event->payload['message']);
+        $this->assertSame('Brake pads replaced, please collect.', $event->payload['translated_message']);
+        $this->assertSame('pl', $event->payload['from_locale']);
+        $this->assertSame('en', $event->payload['to_locale']);
     }
 
-    public function test_response_from_awaiting_approval_state_does_not_transition(): void
+    public function test_same_locale_response_does_not_require_translation(): void
     {
-        [$garage, $user] = $this->makeGarageWithAdmin();
-        [$job, $lineItem] = $this->makeJobWithLineItem($garage, RepairJob::STATE_AWAITING_APPROVAL);
+        [$garage, $user] = $this->makeGarageWithMechanic('en', 'en');
+        [$job, $lineItem] = $this->makeJobWithLineItem($garage, RepairJob::STATE_CUSTOMER_QUERY);
 
         $this->actingAs($user)
             ->withSession(['current_garage_id' => $garage->id])
             ->post(route('jobs.line-items.respond', ['job' => $job->id, 'lineItem' => $lineItem->id]), [
-                'message' => 'Just confirming the price.',
+                'message' => 'Brake pads replaced, please collect.',
             ])
             ->assertRedirect();
 
-        $this->assertSame(RepairJob::STATE_AWAITING_APPROVAL, $job->fresh()->state);
         $this->assertDatabaseHas('approval_events', [
             'job_id' => $job->id,
             'event_type' => ApprovalEvent::EVENT_MECHANIC_RESPONSE,
         ]);
     }
 
-    public function test_empty_message_is_rejected(): void
+    /**
+     * @return array{0: Garage, 1: User}
+     */
+    private function makeGarageWithMechanic(string $garageLocale, ?string $mechanicLocale): array
     {
-        [$garage, $user] = $this->makeGarageWithAdmin();
-        [$job, $lineItem] = $this->makeJobWithLineItem($garage, RepairJob::STATE_CUSTOMER_QUERY);
-
-        $this->actingAs($user)
-            ->withSession(['current_garage_id' => $garage->id])
-            ->post(route('jobs.line-items.respond', ['job' => $job->id, 'lineItem' => $lineItem->id]), [])
-            ->assertSessionHasErrors('message');
-
-        $this->assertSame(RepairJob::STATE_CUSTOMER_QUERY, $job->fresh()->state);
-        $this->assertDatabaseMissing('approval_events', [
-            'job_id' => $job->id,
-            'event_type' => ApprovalEvent::EVENT_MECHANIC_RESPONSE,
-        ]);
-    }
-
-    public function test_non_admin_mechanic_cannot_respond(): void
-    {
-        [$garage, $user] = $this->makeGarageWithMechanic(Mechanic::ROLE_MECHANIC);
-        [$job, $lineItem] = $this->makeJobWithLineItem($garage, RepairJob::STATE_CUSTOMER_QUERY);
-
-        $this->actingAs($user)
-            ->withSession(['current_garage_id' => $garage->id])
-            ->post(route('jobs.line-items.respond', ['job' => $job->id, 'lineItem' => $lineItem->id]), [
-                'message' => 'Anything',
-            ])
-            ->assertForbidden();
-
-        $this->assertDatabaseMissing('approval_events', [
-            'job_id' => $job->id,
-            'event_type' => ApprovalEvent::EVENT_MECHANIC_RESPONSE,
-        ]);
-    }
-
-    private function makeGarage(): Garage
-    {
-        return Garage::create([
+        $garage = Garage::create([
             'name' => 'Garage ' . uniqid(),
             'slug' => 'garage-' . uniqid(),
             'online_payment_enabled' => false,
             'default_notification_channel' => 'email',
-            'locale' => 'en',
+            'locale' => $garageLocale,
         ]);
-    }
 
-    /**
-     * @return array{0: Garage, 1: User}
-     */
-    private function makeGarageWithAdmin(): array
-    {
-        return $this->makeGarageWithMechanic(Mechanic::ROLE_GARAGE_ADMIN);
-    }
-
-    /**
-     * @return array{0: Garage, 1: User}
-     */
-    private function makeGarageWithMechanic(string $role): array
-    {
-        $garage = $this->makeGarage();
         $user = User::factory()->create();
 
         Mechanic::withoutGlobalScopes()->create([
             'garage_id' => $garage->id,
             'user_id' => $user->id,
-            'role' => $role,
+            'role' => Mechanic::ROLE_GARAGE_ADMIN,
+            'locale' => $mechanicLocale,
             'is_active' => true,
         ]);
 

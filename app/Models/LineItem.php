@@ -21,6 +21,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property float $price
  * @property string $status
  * @property string|null $customer_notes
+ * @property string|null $translation_confirmed_text
+ * @property string|null $translation_llm_raw
+ * @property string|null $translation_edited_by_mechanic_id
  */
 #[UsePolicy(LineItemPolicy::class)]
 final class LineItem extends Model
@@ -49,6 +52,9 @@ final class LineItem extends Model
         'price',
         'status',
         'customer_notes',
+        'translation_confirmed_text',
+        'translation_llm_raw',
+        'translation_edited_by_mechanic_id',
     ];
 
     protected function casts(): array
@@ -66,5 +72,10 @@ final class LineItem extends Model
     public function estimate(): BelongsTo
     {
         return $this->belongsTo(Estimate::class);
+    }
+
+    public function translationEditor(): BelongsTo
+    {
+        return $this->belongsTo(Mechanic::class, 'translation_edited_by_mechanic_id');
     }
 }

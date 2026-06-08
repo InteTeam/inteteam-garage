@@ -55,6 +55,12 @@ final class ApprovalEvent extends Model
 
     public const EVENT_TIMEOUT_ALERT = 'timeout_alert';
 
+    public const EVENT_STAFF_NOTIFICATION_DISPATCHED = 'staff_notification_dispatched';
+
+    public const EVENT_STAFF_TOGGLE_LOCK_CHANGED = 'staff_toggle_lock_changed';
+
+    public const EVENT_TIMEOUT_POLICY_CHANGED = 'timeout_policy_changed';
+
     public $timestamps = false;
 
     protected $fillable = [

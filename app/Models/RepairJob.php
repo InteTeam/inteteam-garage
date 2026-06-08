@@ -33,6 +33,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property-read NotificationPreference|null $notificationPreference
  * @property-read Collection<int, JobStage> $stages
  * @property-read Collection<int, ApprovalEvent> $approvalEvents
+ * @property-read Collection<int, Mechanic> $mechanics
  */
 #[UsePolicy(RepairJobPolicy::class)]
 final class RepairJob extends Model
@@ -120,6 +121,7 @@ final class RepairJob extends Model
         return $this->belongsTo(Vehicle::class);
     }
 
+    /** @return BelongsToMany<Mechanic, $this> */
     public function mechanics(): BelongsToMany
     {
         return $this->belongsToMany(Mechanic::class, 'repair_job_mechanic');

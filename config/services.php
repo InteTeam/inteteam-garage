@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
 
     /*
@@ -43,10 +45,12 @@ return [
     'openai' => [
         'key' => env('OPENAI_API_KEY'),
         'translation_model' => env('TRANSLATION_MODEL', 'gpt-4o-mini'),
+        'detect_model' => env('DETECT_MODEL', 'gpt-4o-mini'),
     ],
 
     'garage' => [
         'internal_secret' => env('GARAGE_INTERNAL_SECRET'),
+        'staff_notifications_via_crm_enabled' => (bool) env('GARAGE_STAFF_NOTIFICATIONS_VIA_CRM_ENABLED', false),
     ],
 
     'sso' => [

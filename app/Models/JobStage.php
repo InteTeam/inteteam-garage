@@ -19,9 +19,16 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $garage_id
  * @property string $job_id
  * @property string $name
+ * @property string|null $notes
+ * @property string|null $notes_translated
+ * @property string|null $notes_source_locale
+ * @property string|null $notes_target_locale
+ * @property Carbon|null $notes_translated_at
  * @property int $sort_order
  * @property Carbon|null $locked_at
  * @property-read Collection<int, Media> $media
+ * @property-read Garage $garage
+ * @property-read RepairJob $repairJob
  */
 final class JobStage extends Model
 {
@@ -52,6 +59,11 @@ final class JobStage extends Model
         'garage_id',
         'job_id',
         'name',
+        'notes',
+        'notes_translated',
+        'notes_source_locale',
+        'notes_target_locale',
+        'notes_translated_at',
         'sort_order',
         'locked_at',
     ];
@@ -61,7 +73,14 @@ final class JobStage extends Model
         return [
             'sort_order' => 'integer',
             'locked_at' => 'datetime',
+            'notes_translated_at' => 'datetime',
         ];
+    }
+
+    public function notesWereTranslatedByAi(): bool
+    {
+        return $this->notes_translated !== null
+            && $this->notes_source_locale !== $this->notes_target_locale;
     }
 
     public function garage(): BelongsTo

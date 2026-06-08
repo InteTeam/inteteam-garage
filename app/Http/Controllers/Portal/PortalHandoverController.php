@@ -11,6 +11,7 @@ use App\Models\HandoverInspection;
 use App\Models\HandoverItem;
 use App\Models\RepairJob;
 use App\Services\ApprovalEventService;
+use App\Services\CrmStaffNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -20,6 +21,7 @@ final class PortalHandoverController extends Controller
 {
     public function __construct(
         private readonly ApprovalEventService $approvalEventService,
+        private readonly CrmStaffNotificationService $staffNotifications,
     ) {}
 
     public function show(Request $request, string $token): Response
@@ -86,6 +88,17 @@ final class PortalHandoverController extends Controller
             actorType: ApprovalEvent::ACTOR_CUSTOMER,
             payload: ['items_count' => count($validated['items'])],
         );
+
+        $flagged = collect($validated['items'])->contains(
+            fn (array $item) => $item['accepted'] === false || ! empty($item['notes'] ?? null)
+        );
+
+        if ($flagged) {
+            $job->load('mechanics.user');
+            foreach ($job->mechanics as $mechanic) {
+                $this->staffNotifications->notifyHandoverFlaggedToMechanic($job, $mechanic);
+            }
+        }
 
         return redirect()->route('portal.show', $token)
             ->with(['alert' => 'The handover was submitted successfully.', 'type' => 'success']);

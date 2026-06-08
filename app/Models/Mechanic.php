@@ -19,7 +19,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $garage_id
  * @property string $user_id
  * @property string $role
+ * @property string|null $locale
+ * @property bool|null $channel_toggle_allowed
  * @property bool $is_active
+ * @property-read Garage $garage
+ * @property-read User|null $user
  */
 #[UsePolicy(MechanicPolicy::class)]
 final class Mechanic extends Model
@@ -42,6 +46,8 @@ final class Mechanic extends Model
         'garage_id',
         'user_id',
         'role',
+        'locale',
+        'channel_toggle_allowed',
         'is_active',
     ];
 
@@ -49,7 +55,18 @@ final class Mechanic extends Model
     {
         return [
             'is_active' => 'boolean',
+            'channel_toggle_allowed' => 'boolean',
         ];
+    }
+
+    public function resolvedLocale(): string
+    {
+        return $this->locale ?? $this->garage->locale ?? 'en';
+    }
+
+    public function canToggleChannels(): bool
+    {
+        return $this->channel_toggle_allowed ?? $this->garage->staff_channel_toggle_default ?? true;
     }
 
     public function garage(): BelongsTo

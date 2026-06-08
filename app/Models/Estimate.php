@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $job_id
  * @property int $revision_number
  * @property Carbon|null $sent_at
+ * @property Carbon|null $preview_confirmed_at
  * @property Collection<int, LineItem> $lineItems
  */
 #[UsePolicy(EstimatePolicy::class)]
@@ -37,6 +38,7 @@ final class Estimate extends Model
         'job_id',
         'revision_number',
         'sent_at',
+        'preview_confirmed_at',
     ];
 
     protected function casts(): array
@@ -44,6 +46,7 @@ final class Estimate extends Model
         return [
             'revision_number' => 'integer',
             'sent_at' => 'datetime',
+            'preview_confirmed_at' => 'datetime',
         ];
     }
 
