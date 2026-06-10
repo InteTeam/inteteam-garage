@@ -2,7 +2,8 @@ import { Head, Link, router } from '@inertiajs/react';
 import GarageLayout from '@/Layouts/GarageLayout';
 import { JobStateBadge } from '@/Components/JobStateBadge';
 import { StageNotesEditor, JobStage } from '@/Components/StageNotesEditor';
-import { TranslationPreviewDialog } from '@/Components/TranslationPreviewDialog';
+import { EstimatePanel, Estimate } from '@/Components/EstimatePanel';
+import { JobSidebar } from '@/Components/JobSidebar';
 import { Button } from '@/Components/ui/button';
 import { AlertTriangle, ArrowLeft, ChevronRight } from 'lucide-react';
 
@@ -32,8 +33,6 @@ const STATE_LABELS: Record<string, string> = {
 
 interface Vehicle { registration: string; make: string; model: string; }
 interface Mechanic { id: string; user: { name: string } }
-interface LineItem { id: string; description: string; price: number; status: string }
-interface Estimate { id: string; revision_number: number; sent_at: string | null; preview_confirmed_at: string | null; line_items: LineItem[] }
 interface StateTransition { id: string; from_state: string; to_state: string; occurred_at: string }
 interface HandoverItem { id: string; accepted: boolean; notes: string | null; line_item: { description: string } }
 interface HandoverInspection { id: string; submitted_at: string; items: HandoverItem[] }
@@ -123,109 +122,13 @@ export default function JobShow({ job }: Props) {
             <div className="grid grid-cols-3 gap-4">
                 <div className="col-span-2 space-y-4">
                     <StageNotesEditor jobId={job.id} stages={job.stages} />
-                    {job.current_estimate && (
-                        <div className="bg-white rounded-lg border border-gray-200 p-4">
-                            <div className="flex items-center justify-between mb-3">
-                                <h2 className="font-medium text-gray-900 text-sm">
-                                    Estimate #{job.current_estimate.revision_number}
-                                </h2>
-                                {!job.current_estimate.sent_at && (
-                                    job.current_estimate.preview_confirmed_at ? (
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={() => router.post(`/jobs/${job.id}/estimates/${job.current_estimate!.id}/send`)}
-                                        >
-                                            Send to Customer
-                                        </Button>
-                                    ) : (
-                                        <TranslationPreviewDialog
-                                            jobId={job.id}
-                                            estimateId={job.current_estimate.id}
-                                            trigger={
-                                                <Button size="sm" variant="outline">
-                                                    Preview &amp; Send
-                                                </Button>
-                                            }
-                                        />
-                                    )
-                                )}
-                            </div>
-                            <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="border-b border-gray-100">
-                                        <th className="pb-2 text-left font-medium text-gray-600">Description</th>
-                                        <th className="pb-2 text-right font-medium text-gray-600">Price</th>
-                                        <th className="pb-2 text-right font-medium text-gray-600">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-50">
-                                    {job.current_estimate.line_items.map((item) => (
-                                        <tr key={item.id}>
-                                            <td className="py-2 text-gray-800">{item.description}</td>
-                                            <td className="py-2 text-right text-gray-800">£{item.price.toFixed(2)}</td>
-                                            <td className="py-2 text-right">
-                                                <span className={`text-xs font-medium ${
-                                                    item.status === 'approved' ? 'text-green-600' :
-                                                    item.status === 'declined' ? 'text-red-600' : 'text-gray-500'
-                                                }`}>
-                                                    {item.status}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                                <tfoot>
-                                    <tr>
-                                        <td colSpan={2} className="pt-3 text-right text-sm font-semibold text-gray-900">
-                                            Total: £{job.current_estimate.line_items.reduce((s, i) => s + i.price, 0).toFixed(2)}
-                                        </td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                    )}
+                    {job.current_estimate && <EstimatePanel jobId={job.id} estimate={job.current_estimate} />}
                 </div>
-
-                <div className="space-y-4">
-                    <div className="bg-white rounded-lg border border-gray-200 p-4">
-                        <h2 className="font-medium text-gray-900 text-sm mb-3">Assigned Mechanics</h2>
-                        {job.mechanics.length === 0 ? (
-                            <p className="text-sm text-gray-400">None assigned</p>
-                        ) : (
-                            <ul className="space-y-1">
-                                {job.mechanics.map((m) => (
-                                    <li key={m.id} className="text-sm text-gray-700">{m.user.name}</li>
-                                ))}
-                            </ul>
-                        )}
-                    </div>
-
-                    <div className="bg-white rounded-lg border border-gray-200 p-4">
-                        <h2 className="font-medium text-gray-900 text-sm mb-3">State History</h2>
-                        <ul className="space-y-2">
-                            {job.state_transitions.map((t) => (
-                                <li key={t.id} className="text-xs text-gray-500">
-                                    <span className="font-medium text-gray-700">{t.from_state}</span>
-                                    {' → '}
-                                    <span className="font-medium text-gray-700">{t.to_state}</span>
-                                    <div>{new Date(t.occurred_at).toLocaleString('en-GB')}</div>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-
-                    <div className="bg-white rounded-lg border border-gray-200 p-4">
-                        <h2 className="font-medium text-gray-900 text-sm mb-2">Portal Link</h2>
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            asChild
-                        >
-                            <Link href={`/jobs/${job.id}/portal-link`}>Manage Portal Link</Link>
-                        </Button>
-                    </div>
-                </div>
+                <JobSidebar
+                    jobId={job.id}
+                    mechanics={job.mechanics}
+                    stateTransitions={job.state_transitions}
+                />
             </div>
         </GarageLayout>
     );

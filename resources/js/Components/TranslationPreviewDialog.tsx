@@ -1,17 +1,10 @@
 import { router } from '@inertiajs/react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { Button } from '@/Components/ui/button';
-import { Languages, RefreshCw, X } from 'lucide-react';
+import { PreviewLineItem, TranslationPreviewRow } from '@/Components/TranslationPreviewRow';
+import { Languages, X } from 'lucide-react';
 import { ReactNode, useState } from 'react';
 import axios from 'axios';
-
-interface PreviewLineItem {
-    id: string;
-    original: string;
-    translated: string;
-    translated_by_ai: boolean;
-    price: number;
-}
 
 interface PreviewResponse {
     translations: PreviewLineItem[];
@@ -35,13 +28,13 @@ export function TranslationPreviewDialog({ jobId, estimateId, trigger }: Props) 
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const previewUrl = `/jobs/${jobId}/estimates/${estimateId}/preview-translation`;
+
     async function loadPreview() {
         setLoading(true);
         setError(null);
         try {
-            const res = await axios.post<PreviewResponse>(
-                `/jobs/${jobId}/estimates/${estimateId}/preview-translation`,
-            );
+            const res = await axios.post<PreviewResponse>(previewUrl);
             setPreview(res.data);
             setEdits(Object.fromEntries(res.data.translations.map((t) => [t.id, t.translated])));
         } catch (e) {
@@ -55,13 +48,9 @@ export function TranslationPreviewDialog({ jobId, estimateId, trigger }: Props) 
         if (!preview) return;
         setLoading(true);
         try {
-            const res = await axios.post<PreviewResponse>(
-                `/jobs/${jobId}/estimates/${estimateId}/preview-translation`,
-            );
+            const res = await axios.post<PreviewResponse>(previewUrl);
             const fresh = res.data.translations.find((t) => t.id === itemId);
-            if (fresh) {
-                setEdits((prev) => ({ ...prev, [itemId]: fresh.translated }));
-            }
+            if (fresh) setEdits((prev) => ({ ...prev, [itemId]: fresh.translated }));
         } finally {
             setLoading(false);
         }
@@ -70,42 +59,25 @@ export function TranslationPreviewDialog({ jobId, estimateId, trigger }: Props) 
     function confirmAndSend() {
         if (!preview) return;
         setSubmitting(true);
-
         const confirmations = preview.translations.map((t) => ({
             id: t.id,
             translated_text: edits[t.id] ?? t.translated,
             llm_raw_text: t.translated,
         }));
-
-        router.post(
-            `/jobs/${jobId}/estimates/${estimateId}/confirm-translation`,
-            { confirmations },
-            {
+        router.post(`/jobs/${jobId}/estimates/${estimateId}/confirm-translation`, { confirmations }, {
+            preserveScroll: true,
+            onSuccess: () => router.post(`/jobs/${jobId}/estimates/${estimateId}/send`, {}, {
                 preserveScroll: true,
-                onSuccess: () => {
-                    router.post(`/jobs/${jobId}/estimates/${estimateId}/send`, {}, {
-                        preserveScroll: true,
-                        onFinish: () => {
-                            setSubmitting(false);
-                            setOpen(false);
-                        },
-                    });
-                },
-                onError: () => setSubmitting(false),
-            },
-        );
+                onFinish: () => { setSubmitting(false); setOpen(false); },
+            }),
+            onError: () => setSubmitting(false),
+        });
     }
 
     function handleOpenChange(next: boolean) {
         setOpen(next);
-        if (next && !preview) {
-            loadPreview();
-        }
-        if (!next) {
-            setPreview(null);
-            setEdits({});
-            setError(null);
-        }
+        if (next && !preview) loadPreview();
+        if (!next) { setPreview(null); setEdits({}); setError(null); }
     }
 
     return (
@@ -117,27 +89,19 @@ export function TranslationPreviewDialog({ jobId, estimateId, trigger }: Props) 
                     <div className="flex items-start justify-between mb-4">
                         <div>
                             <Dialog.Title className="text-base font-semibold text-gray-900 flex items-center gap-2">
-                                <Languages className="h-4 w-4" />
-                                Translation Preview
+                                <Languages className="h-4 w-4" /> Translation Preview
                             </Dialog.Title>
                             <Dialog.Description className="text-sm text-gray-500 mt-1">
                                 Review the customer-facing translation before sending. Edits override the AI suggestion.
                             </Dialog.Description>
                         </div>
                         <Dialog.Close asChild>
-                            <button className="text-gray-400 hover:text-gray-600">
-                                <X className="h-4 w-4" />
-                            </button>
+                            <button className="text-gray-400 hover:text-gray-600"><X className="h-4 w-4" /></button>
                         </Dialog.Close>
                     </div>
 
-                    {loading && !preview && (
-                        <p className="text-sm text-gray-500 py-8 text-center">Loading translation…</p>
-                    )}
-
-                    {error && (
-                        <p className="text-sm text-red-600 py-4">{error}</p>
-                    )}
+                    {loading && !preview && <p className="text-sm text-gray-500 py-8 text-center">Loading translation…</p>}
+                    {error && <p className="text-sm text-red-600 py-4">{error}</p>}
 
                     {preview && (
                         <>
@@ -151,39 +115,20 @@ export function TranslationPreviewDialog({ jobId, estimateId, trigger }: Props) 
                                     </span>
                                 )}
                             </div>
-
                             <div className="space-y-3">
                                 {preview.translations.map((item) => (
-                                    <div key={item.id} className="grid grid-cols-2 gap-3 border border-gray-200 rounded-md p-3">
-                                        <div>
-                                            <p className="text-xs font-medium text-gray-500 mb-1">Original ({preview.from_locale})</p>
-                                            <p className="text-sm text-gray-800">{item.original}</p>
-                                            <p className="text-xs text-gray-500 mt-1">£{item.price.toFixed(2)}</p>
-                                        </div>
-                                        <div>
-                                            <div className="flex items-center justify-between mb-1">
-                                                <p className="text-xs font-medium text-gray-500">Customer sees ({preview.to_locale})</p>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => retryItem(item.id)}
-                                                    disabled={loading}
-                                                    className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 disabled:text-gray-300"
-                                                >
-                                                    <RefreshCw className="h-3 w-3" />
-                                                    Retry
-                                                </button>
-                                            </div>
-                                            <textarea
-                                                rows={2}
-                                                value={edits[item.id] ?? ''}
-                                                onChange={(e) => setEdits((prev) => ({ ...prev, [item.id]: e.target.value }))}
-                                                className="text-sm border border-gray-300 rounded-md px-2 py-1 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            />
-                                        </div>
-                                    </div>
+                                    <TranslationPreviewRow
+                                        key={item.id}
+                                        item={item}
+                                        fromLocale={preview.from_locale}
+                                        toLocale={preview.to_locale}
+                                        draftText={edits[item.id] ?? ''}
+                                        onDraftChange={(next) => setEdits((prev) => ({ ...prev, [item.id]: next }))}
+                                        onRetry={() => retryItem(item.id)}
+                                        retryDisabled={loading}
+                                    />
                                 ))}
                             </div>
-
                             <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-gray-100">
                                 <Dialog.Close asChild>
                                     <Button variant="outline" size="sm" disabled={submitting}>Cancel</Button>
