@@ -44,6 +44,7 @@ services:
     image: mariadb:11.8
     container_name: garage_mariadb
     restart: unless-stopped
+    command: ["sh", "-c", "chmod 1777 /tmp && exec docker-entrypoint.sh mariadbd"]
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-GarageRoot2026!}
       MYSQL_DATABASE: inteteam_garage
