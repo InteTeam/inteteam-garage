@@ -44,6 +44,7 @@ Route::middleware(['auth', 'garage'])->group(function () {
         Route::resource('/', JobController::class)->parameters(['' => 'job']);
         Route::post('/{job}/transition', [JobController::class, 'transition'])->name('transition');
         Route::resource('/{job}/stages', JobStageController::class)->parameters(['stages' => 'stage']);
+        Route::patch('/{job}/stages/{stage}/notes', [JobStageController::class, 'updateNotes'])->name('stages.notes.update');
         Route::post('/{job}/stages/{stage}/media', [MediaController::class, 'store'])->name('stages.media.store');
         Route::resource('/{job}/estimates', EstimateController::class)->parameters(['estimates' => 'estimate']);
         Route::post('/{job}/estimates/{estimate}/send', [EstimateLifecycleController::class, 'send'])->name('estimates.send');

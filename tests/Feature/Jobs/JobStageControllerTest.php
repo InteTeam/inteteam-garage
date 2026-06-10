@@ -11,12 +11,25 @@ use App\Models\RepairJob;
 use App\Models\User;
 use App\Models\Vehicle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
 final class JobStageControllerTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Http::fake([
+            '*/api/v1/internal/customers/*' => Http::response(['data' => ['locale' => 'en']], 200),
+            'https://api.openai.com/*' => Http::response([
+                'choices' => [['message' => ['content' => 'en']]],
+            ], 200),
+        ]);
+    }
 
     public function test_store_persists_stage_under_job_from_route(): void
     {
@@ -72,6 +85,68 @@ final class JobStageControllerTest extends TestCase
             'id' => $stageOnB->id,
             'job_id' => $jobB->id,
             'name' => JobStage::STAGE_PRE_INSPECTION,
+        ]);
+    }
+
+    public function test_update_notes_persists_same_locale_without_translation(): void
+    {
+        [$garage, $user] = $this->makeGarageWithAdmin();
+        $job = $this->makeJob($garage);
+        $stage = $this->makeStage($job);
+
+        $this->actingAs($user)
+            ->withSession(['current_garage_id' => $garage->id])
+            ->patch(route('jobs.stages.notes.update', ['job' => $job->id, 'stage' => $stage->id]), [
+                'notes' => 'Replaced brake pads on both front wheels.',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('job_stages', [
+            'id' => $stage->id,
+            'notes' => 'Replaced brake pads on both front wheels.',
+            'notes_target_locale' => null,
+            'notes_translated' => null,
+        ]);
+    }
+
+    public function test_update_notes_rejects_non_mechanic_user(): void
+    {
+        $garage = Garage::create([
+            'name' => 'Garage ' . uniqid(),
+            'slug' => 'garage-' . uniqid(),
+            'online_payment_enabled' => false,
+            'default_notification_channel' => 'email',
+            'locale' => 'en',
+        ]);
+        $orphanUser = User::factory()->create();
+        $job = $this->makeJob($garage);
+        $stage = $this->makeStage($job);
+
+        $this->actingAs($orphanUser)
+            ->withSession(['current_garage_id' => $garage->id])
+            ->patch(route('jobs.stages.notes.update', ['job' => $job->id, 'stage' => $stage->id]), [
+                'notes' => 'should not save',
+            ])
+            ->assertForbidden();
+    }
+
+    public function test_update_notes_rejects_stage_from_different_job(): void
+    {
+        [$garage, $user] = $this->makeGarageWithAdmin();
+        $jobA = $this->makeJob($garage);
+        $jobB = $this->makeJob($garage);
+        $stageOnB = $this->makeStage($jobB);
+
+        $this->actingAs($user)
+            ->withSession(['current_garage_id' => $garage->id])
+            ->patch(route('jobs.stages.notes.update', ['job' => $jobA->id, 'stage' => $stageOnB->id]), [
+                'notes' => 'cross-job tamper',
+            ])
+            ->assertStatus(500);
+
+        $this->assertDatabaseHas('job_stages', [
+            'id' => $stageOnB->id,
+            'notes' => null,
         ]);
     }
 

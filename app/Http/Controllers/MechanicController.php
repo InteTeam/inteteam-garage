@@ -8,6 +8,7 @@ use App\Http\Requests\Mechanic\StoreMechanicRequest;
 use App\Http\Requests\Mechanic\UpdateMechanicRequest;
 use App\Models\Mechanic;
 use App\Services\MechanicService;
+use App\Services\TranslationService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -27,6 +28,15 @@ final class MechanicController extends Controller
         ]);
     }
 
+    public function create(): Response
+    {
+        $this->authorize('create', Mechanic::class);
+
+        return Inertia::render('Mechanics/Form', [
+            'locales' => TranslationService::SUPPORTED_LOCALES,
+        ]);
+    }
+
     public function store(StoreMechanicRequest $request): RedirectResponse
     {
         $this->authorize('create', Mechanic::class);
@@ -43,6 +53,16 @@ final class MechanicController extends Controller
 
         return Inertia::render('Mechanics/Show', [
             'mechanic' => $mechanic,
+        ]);
+    }
+
+    public function edit(Mechanic $mechanic): Response
+    {
+        $this->authorize('update', $mechanic);
+
+        return Inertia::render('Mechanics/Form', [
+            'mechanic' => $mechanic,
+            'locales' => TranslationService::SUPPORTED_LOCALES,
         ]);
     }
 

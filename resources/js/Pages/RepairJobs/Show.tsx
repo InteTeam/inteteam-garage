@@ -1,6 +1,8 @@
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import GarageLayout from '@/Layouts/GarageLayout';
 import { JobStateBadge } from '@/Components/JobStateBadge';
+import { StageNotesEditor, JobStage } from '@/Components/StageNotesEditor';
+import { TranslationPreviewDialog } from '@/Components/TranslationPreviewDialog';
 import { Button } from '@/Components/ui/button';
 import { AlertTriangle, ArrowLeft, ChevronRight } from 'lucide-react';
 
@@ -31,7 +33,7 @@ const STATE_LABELS: Record<string, string> = {
 interface Vehicle { registration: string; make: string; model: string; }
 interface Mechanic { id: string; user: { name: string } }
 interface LineItem { id: string; description: string; price: number; status: string }
-interface Estimate { id: string; revision_number: number; sent_at: string | null; line_items: LineItem[] }
+interface Estimate { id: string; revision_number: number; sent_at: string | null; preview_confirmed_at: string | null; line_items: LineItem[] }
 interface StateTransition { id: string; from_state: string; to_state: string; occurred_at: string }
 interface HandoverItem { id: string; accepted: boolean; notes: string | null; line_item: { description: string } }
 interface HandoverInspection { id: string; submitted_at: string; items: HandoverItem[] }
@@ -44,6 +46,7 @@ interface Job {
     current_estimate: Estimate | null;
     state_transitions: StateTransition[];
     handover_inspection: HandoverInspection | null;
+    stages: JobStage[];
     created_at: string;
 }
 
@@ -119,6 +122,7 @@ export default function JobShow({ job }: Props) {
 
             <div className="grid grid-cols-3 gap-4">
                 <div className="col-span-2 space-y-4">
+                    <StageNotesEditor jobId={job.id} stages={job.stages} />
                     {job.current_estimate && (
                         <div className="bg-white rounded-lg border border-gray-200 p-4">
                             <div className="flex items-center justify-between mb-3">
@@ -126,13 +130,25 @@ export default function JobShow({ job }: Props) {
                                     Estimate #{job.current_estimate.revision_number}
                                 </h2>
                                 {!job.current_estimate.sent_at && (
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => router.post(`/jobs/${job.id}/estimates/${job.current_estimate!.id}/send`)}
-                                    >
-                                        Send to Customer
-                                    </Button>
+                                    job.current_estimate.preview_confirmed_at ? (
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => router.post(`/jobs/${job.id}/estimates/${job.current_estimate!.id}/send`)}
+                                        >
+                                            Send to Customer
+                                        </Button>
+                                    ) : (
+                                        <TranslationPreviewDialog
+                                            jobId={job.id}
+                                            estimateId={job.current_estimate.id}
+                                            trigger={
+                                                <Button size="sm" variant="outline">
+                                                    Preview &amp; Send
+                                                </Button>
+                                            }
+                                        />
+                                    )
                                 )}
                             </div>
                             <table className="w-full text-sm">
