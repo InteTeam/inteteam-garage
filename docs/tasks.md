@@ -301,7 +301,7 @@ integen generates `company_id` and `HasCompanyScope`. This project uses `garage_
   - 23 flash messages rewritten to canonical `'The X was Y.'` format across 12 controllers (Estimate, Job, GarageSettings, Mechanic, JobMechanic, JobStage, Vehicle, PortalLink, Portal/Handover, Portal/LineItem, Portal/Payment, Portal/Preference).
   - `tests/Feature/GuestRedirectTest.php` — parameterised over 8 protected routes, asserts redirect to `/login` for each.
   - `docs/app-map.md` refreshed: new "Services" section, `EVENT_PREFERENCE_CHANGED` second trigger noted, two new gotchas (estimate immutability after customer response, `garage_id` not accepted from client).
-- [ ] `docs/features/garage-core/README.md` — acceptance criteria all ticked
+- [x] `docs/features/garage-core/README.md` — acceptance criteria all ticked (9/9 closed 2026-06-10 in commit `867c76f`; each item annotated with the enforcing file path + covering test)
 - [ ] Staging deploy via Panel
 - [ ] Smoke test: create garage → create job → upload media → send estimate → approve → complete → handover → collected
 

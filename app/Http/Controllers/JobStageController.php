@@ -83,10 +83,7 @@ final class JobStageController extends Controller
         /** @var User $user */
         $user = $request->user();
         $mechanic = $user->mechanic;
-
-        if ($mechanic === null) {
-            throw new RuntimeException('Only mechanics can edit stage notes.');
-        }
+        abort_if($mechanic === null, 403, 'Only mechanics can edit stage notes.');
 
         $notes = (string) ($request->validated()['notes'] ?? '');
         $this->jobStageService->updateNotes($stage, $notes, $mechanic);

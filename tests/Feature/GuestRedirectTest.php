@@ -32,9 +32,11 @@ final class GuestRedirectTest extends TestCase
         yield 'vehicles create' => ['GET', '/vehicles/create'];
         yield 'mechanics index' => ['GET', '/mechanics'];
         yield 'mechanics create' => ['GET', '/mechanics/create'];
+        yield 'mechanics edit' => ['GET', '/mechanics/01HZ0000000000000000000001/edit'];
         yield 'settings index' => ['GET', '/settings'];
         yield 'estimates confirm-translation' => ['POST', '/jobs/01HZ0000000000000000000000/estimates/01HZ0000000000000000000001/confirm-translation'];
         yield 'estimates preview-translation' => ['POST', '/jobs/01HZ0000000000000000000000/estimates/01HZ0000000000000000000001/preview-translation'];
         yield 'line-items preview-response' => ['POST', '/jobs/01HZ0000000000000000000000/line-items/01HZ0000000000000000000001/preview-response'];
+        yield 'stages notes update' => ['PATCH', '/jobs/01HZ0000000000000000000000/stages/01HZ0000000000000000000001/notes'];
     }
 }

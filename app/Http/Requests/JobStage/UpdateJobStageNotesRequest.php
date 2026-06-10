@@ -10,6 +10,8 @@ final class UpdateJobStageNotesRequest extends FormRequest
 {
     public function authorize(): bool
     {
+        // Authorization is enforced in the controller via RepairJobPolicy::update
+        // and the explicit Mechanic-presence guard in JobStageController::updateNotes.
         return true;
     }
 
