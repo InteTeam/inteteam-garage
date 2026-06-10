@@ -11,13 +11,27 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
+use Inertia\Inertia;
+use Inertia\Response;
 
 final class SsoLoginController extends Controller
 {
-    public function redirect(): RedirectResponse
+    public function redirect(): RedirectResponse|Response
     {
         $ssoUrl = config('services.sso.public_url');
         $clientId = config('services.sso.client_id');
+
+        if (empty($ssoUrl) || empty($clientId)) {
+            return Inertia::render('Auth/SsoSetup', [
+                'callbackUrl' => route('auth.callback'),
+                'missing' => array_filter([
+                    empty($ssoUrl) ? 'SSO_URL' : null,
+                    empty($clientId) ? 'SSO_CLIENT_ID' : null,
+                    empty(config('services.sso.client_secret')) ? 'SSO_CLIENT_SECRET' : null,
+                ]),
+            ]);
+        }
+
         $callbackUrl = route('auth.callback');
 
         return redirect("{$ssoUrl}/oauth/authorize?client_id={$clientId}&redirect_uri={$callbackUrl}&response_type=code&scope=");
