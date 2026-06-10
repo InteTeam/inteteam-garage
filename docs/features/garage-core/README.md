@@ -28,15 +28,15 @@ The core repair job lifecycle — from vehicle intake through diagnostics, estim
 
 ## Acceptance Criteria
 
-- [ ] Job state machine enforces all valid transitions; invalid transitions throw
-- [ ] Media cannot be uploaded to a locked stage
-- [ ] Estimate cannot be re-sent after customer has responded; requires new revision
-- [ ] All approvals, declines, questions, and preference changes write to `ApprovalEvent`
-- [ ] `collected` state requires: HandoverInspection submitted + (payment confirmed OR payment disabled)
-- [ ] Cross-garage data access returns 404
-- [ ] Customer portal token is scoped to one job only
-- [ ] 24h timeout flags jobs stuck in `awaiting_approval`, `customer_query`, `awaiting_collection`
-- [ ] Translation preview shown before sending estimate when locale pair requires it
+- [x] Job state machine enforces all valid transitions; invalid transitions throw — `App\Services\JobStateMachine::transition()` + guards; `RepairJob::state` excluded from `$fillable`. Covered by `JobStateMachineTest` (each valid + invalid transition).
+- [x] Media cannot be uploaded to a locked stage — `App\Services\GcsService::upload()` rejects when `JobStage.locked_at` is non-null. Auto-lock policy in `JobStateMachine::lockStagesPastActivity()`. Covered by `MediaUploadTest` + `StageLockTest`.
+- [x] Estimate cannot be re-sent after customer has responded; requires new revision — `App\Services\EstimateService::update()` throws `RuntimeException` when `Estimate::hasCustomerResponse()` is true. Controller `EstimateController::store()` auto-increments `revision_number`. Covered by `EstimateRevisionTest`.
+- [x] All approvals, declines, questions, and preference changes write to `ApprovalEvent` — `App\Services\ApprovalEventService` is the only writer (`record`, `recordBySystem`). Append-only model (`$timestamps = false`, no soft delete). Covered by `ApprovalEventImmutabilityTest` + `NotificationPreferenceAuditTest` + `CustomerApprovalFlowTest`.
+- [x] `collected` state requires: HandoverInspection submitted + (payment confirmed OR payment disabled) — `JobStateMachine::guardCollected()`. Covered by `JobStateMachineTest::cannot_collect_*` + `can_collect_*` (4 cases) and end-to-end by `FullCustomerJourneyTest`.
+- [x] Cross-garage data access returns 404 — `App\Models\Concerns\HasGarageScope` global scope on every tenant model; `EnsureGarageContext` middleware sets the session key. Covered by `GarageIsolationTest`.
+- [x] Customer portal token is scoped to one job only — `ValidatePortalToken` middleware binds the matching `RepairJob` to the route attributes; portal controllers read job via `$request->attributes->get('portal_job')`. Covered by `PortalTokenScopeTest` (expired/revoked/cross-job).
+- [x] 24h timeout flags jobs stuck in `awaiting_approval`, `customer_query`, `awaiting_collection` — `App\Console\Commands\CheckJobTimeouts` (hourly schedule) with policy-aware dispatch via `Garage.timeout_reminder_policy`. Covered by `CheckJobTimeoutsTest` (5 cases including dedup).
+- [x] Translation preview shown before sending estimate when locale pair requires it — `EstimateService::guardSendable()` throws when `fromLocale !== toLocale` and `Estimate.preview_confirmed_at` is null. Frontend gate in `Components/TranslationPreviewDialog.tsx` opens the side-by-side editor and posts `confirm-translation` before `send`. Covered by `EstimatePreviewTest` (5 cases).
 
 ## Design Checklist
 

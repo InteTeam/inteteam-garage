@@ -36,6 +36,7 @@ Multi-tenancy is per-`Garage`. Every tenant model uses `HasGarageScope` (resolve
 | POST | `/jobs/{job}/transition` | `JobController@transition` | Triggers `JobStateMachine` |
 | resource | `/jobs/{job}/stages` | `JobStageController` | CRUD |
 | POST | `/jobs/{job}/stages/{stage}/media` | `MediaController@store` | Upload to GCS, locked stages reject |
+| PATCH | `/jobs/{job}/stages/{stage}/notes` | `JobStageController@updateNotes` | Mechanic writes stage notes in their working locale. `JobStageService::updateNotes()` runs `verifySourceLocale` + auto-translates to the customer locale (24h cache by text hash + locale pair); empty notes clears all translation columns. Mechanic-only — non-mechanic users get 403. Frontend: inline `Components/StageNotesEditor.tsx` per stage on `RepairJobs/Show.tsx`. |
 | resource | `/jobs/{job}/estimates` | `EstimateController` | CRUD |
 | POST | `/jobs/{job}/estimates/{estimate}/send` | `EstimateLifecycleController@send` | Triggers `awaiting_approval`. Cross-locale estimates blocked by `EstimateService::guardSendable` unless `preview_confirmed_at` is set (returns to form with `assertSessionHasErrors('estimate')`). |
 | POST | `/jobs/{job}/estimates/{estimate}/preview-translation` | `EstimateLifecycleController@previewTranslation` | LLM preview before send. Resolves `fromLocale` via `Mechanic::resolvedLocale()` + auto-detect override; `toLocale` via `CrmApiService::getCustomerLocale()` with garage fallback. Returns JSON: `{translations, from_locale, to_locale, configured_from_locale, auto_detected_override}`. |
