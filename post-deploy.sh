@@ -20,9 +20,16 @@ done
 
 docker compose exec -T php-fpm composer install --no-dev --optimize-autoloader --no-interaction
 
-# Generate APP_KEY only if not already set
+# Generate APP_KEY only if not already set, then restart services so all
+# long-running processes (queue-worker) pick up the new key from .env.
 APP_KEY="$(grep '^APP_KEY=' .env | cut -d= -f2 || true)"
-[[ -z "$APP_KEY" ]] && docker compose exec -T php-fpm php artisan key:generate --force
+if [[ -z "$APP_KEY" ]]; then
+  docker compose exec -T php-fpm php artisan key:generate --force
+  # Restart so queue-worker and php-fpm reload .env with the new key.
+  # Without this, queue-worker keeps the empty APP_KEY it read at startup.
+  docker compose restart php-fpm queue-worker
+  sleep 3
+fi
 
 docker compose exec -T php-fpm php artisan migrate --force
 docker compose exec -T php-fpm php artisan storage:link 2>/dev/null || true
