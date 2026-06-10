@@ -15,6 +15,13 @@ final class StoreMechanicRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->input('locale') === '') {
+            $this->merge(['locale' => null]);
+        }
+    }
+
     /**
      * @return array<string, array<int, mixed>>
      */

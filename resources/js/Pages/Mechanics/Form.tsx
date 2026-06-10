@@ -9,16 +9,24 @@ interface Mechanic {
     is_active: boolean;
     locale: string | null;
     channel_toggle_allowed: boolean | null;
+    user_id: number;
 }
-interface Props { mechanic?: Mechanic | null; locales: string[] }
+interface AvailableUser { id: number; name: string; email: string }
+interface Props {
+    mechanic?: Mechanic | null;
+    locales: string[];
+    availableUsers?: AvailableUser[];
+}
 
 const field = 'text-sm border border-gray-300 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500';
 const label = 'block text-sm font-medium text-gray-700 mb-1';
 const err = 'text-xs text-red-600 mt-1';
 const help = 'text-xs text-gray-500 mt-1';
 
-export default function MechanicForm({ mechanic, locales }: Props) {
+export default function MechanicForm({ mechanic, locales, availableUsers = [] }: Props) {
+    const isEdit = mechanic !== null && mechanic !== undefined;
     const { data, setData, post, put, processing, errors } = useForm({
+        user_id: mechanic?.user_id ?? (availableUsers[0]?.id ?? 0),
         role: mechanic?.role ?? 'mechanic',
         is_active: mechanic?.is_active ?? true,
         locale: mechanic?.locale ?? '',
@@ -32,10 +40,32 @@ export default function MechanicForm({ mechanic, locales }: Props) {
     }
 
     return (
-        <GarageLayout title={mechanic ? 'Edit Mechanic' : 'Add Mechanic'}>
-            <Head title={mechanic ? 'Edit Mechanic' : 'Add Mechanic'} />
+        <GarageLayout title={isEdit ? 'Edit Mechanic' : 'Add Mechanic'}>
+            <Head title={isEdit ? 'Edit Mechanic' : 'Add Mechanic'} />
             <div className="max-w-md bg-white rounded-lg border border-gray-200 p-6">
                 <form onSubmit={submit} className="space-y-4">
+                    {!isEdit && (
+                        <div>
+                            <label htmlFor="user_id" className={label}>SSO user</label>
+                            {availableUsers.length === 0 ? (
+                                <p className="text-sm text-amber-700">
+                                    No unassigned users — every existing user already has a Mechanic record.
+                                </p>
+                            ) : (
+                                <select
+                                    id="user_id"
+                                    className={field}
+                                    value={data.user_id}
+                                    onChange={(e) => setData('user_id', Number(e.target.value))}
+                                >
+                                    {availableUsers.map((u) => (
+                                        <option key={u.id} value={u.id}>{u.name} — {u.email}</option>
+                                    ))}
+                                </select>
+                            )}
+                            {errors.user_id && <p className={err}>{errors.user_id}</p>}
+                        </div>
+                    )}
                     <div>
                         <label htmlFor="role" className={label}>Role</label>
                         <select id="role" className={field} value={data.role} onChange={(e) => setData('role', e.target.value)}>
@@ -80,7 +110,12 @@ export default function MechanicForm({ mechanic, locales }: Props) {
                         <label htmlFor="is_active" className="text-sm font-medium text-gray-700">Active</label>
                     </div>
                     <div className="flex justify-end pt-2">
-                        <Button type="submit" disabled={processing}>{processing ? 'Saving…' : (mechanic ? 'Update' : 'Create')}</Button>
+                        <Button
+                            type="submit"
+                            disabled={processing || (!isEdit && availableUsers.length === 0)}
+                        >
+                            {processing ? 'Saving…' : (isEdit ? 'Update' : 'Create')}
+                        </Button>
                     </div>
                 </form>
             </div>

@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Mechanic\StoreMechanicRequest;
 use App\Http\Requests\Mechanic\UpdateMechanicRequest;
 use App\Models\Mechanic;
+use App\Models\User;
 use App\Services\MechanicService;
 use App\Services\TranslationService;
 use Illuminate\Http\RedirectResponse;
@@ -32,8 +33,14 @@ final class MechanicController extends Controller
     {
         $this->authorize('create', Mechanic::class);
 
+        $unassignedUsers = User::query()
+            ->whereDoesntHave('mechanic', fn ($q) => $q->withoutGlobalScopes())
+            ->orderBy('name')
+            ->get(['id', 'name', 'email']);
+
         return Inertia::render('Mechanics/Form', [
             'locales' => TranslationService::SUPPORTED_LOCALES,
+            'availableUsers' => $unassignedUsers,
         ]);
     }
 
