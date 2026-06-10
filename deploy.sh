@@ -101,15 +101,19 @@ fi
 ok "Docker Compose: $(docker compose version --short 2>/dev/null || docker compose version)"
 
 mkdir -p /etc/docker
-cat > /etc/docker/daemon.json <<'JSON'
+if [[ ! -f /etc/docker/daemon.json ]] || ! grep -q '"max-size"' /etc/docker/daemon.json 2>/dev/null; then
+  cat > /etc/docker/daemon.json <<'JSON'
 {
   "log-driver": "json-file",
   "log-opts": { "max-size": "10m", "max-file": "3" },
   "storage-driver": "overlay2"
 }
 JSON
-systemctl restart docker
-ok "Docker daemon log rotation configured"
+  systemctl restart docker
+  ok "Docker daemon log rotation configured"
+else
+  ok "Docker daemon log rotation already configured"
+fi
 
 # ─────────────────────────────────────────────────────────────────────────────
 step "2" "Firewall (UFW + fail2ban)"
@@ -154,7 +158,7 @@ mkdir -p storage/app/public
 mkdir -p storage/framework/{cache,sessions,testing,views}
 mkdir -p storage/logs
 mkdir -p bootstrap/cache
-chown -R 33:33 storage bootstrap/cache
+chown -R 1000:1000 storage bootstrap/cache
 chmod -R 775  storage bootstrap/cache
 ok "storage/ and bootstrap/cache/ permissions set"
 
@@ -178,11 +182,15 @@ randpass() { openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 32; }
 set_env "PORT" "$APP_PORT"
 
 # ── Application ──────────────────────────────────────────────────────────────
+set_env "APP_NAME" "InteTeam Garage"
+
 if [[ -n "$DOMAIN" ]]; then
-  set_env "APP_ENV"   "production"
-  set_env "APP_DEBUG" "false"
-  set_env "APP_URL"   "https://${DOMAIN}"
-  set_env "LOG_LEVEL" "warning"
+  set_env "APP_ENV"        "production"
+  set_env "APP_DEBUG"      "false"
+  set_env "APP_URL"        "https://${DOMAIN}"
+  set_env "LOG_CHANNEL"    "daily"
+  set_env "LOG_LEVEL"      "warning"
+  set_env "LOG_DAILY_DAYS" "14"
 else
   set_env "APP_ENV"   "local"
   set_env "APP_DEBUG" "true"

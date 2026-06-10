@@ -18,6 +18,16 @@ for i in $(seq 1 30); do
   [[ $i -eq 30 ]] && echo "ERROR: MariaDB not ready after 60s" && exit 1
 done
 
+# Fix /home/www/.config for Tinker/XDG cache — must run as root inside container
+docker compose exec -T -u root php-fpm sh -c \
+  "mkdir -p /home/www/.config && chown -R 1000:1000 /home/www/.config storage bootstrap/cache" \
+  2>/dev/null || echo "warning: php-fpm home/.config fix skipped"
+
+# Nginx upload limit
+docker compose exec -T nginx sh -c \
+  "printf 'client_max_body_size 100M;\n' > /etc/nginx/conf.d/z_uploads.conf && nginx -s reload" \
+  2>/dev/null || echo "warning: nginx upload limit fix skipped"
+
 docker compose exec -T php-fpm composer install --no-dev --optimize-autoloader --no-interaction
 
 # Generate APP_KEY only if not already set, then restart services so all
@@ -25,23 +35,40 @@ docker compose exec -T php-fpm composer install --no-dev --optimize-autoloader -
 APP_KEY="$(grep '^APP_KEY=' .env | cut -d= -f2 || true)"
 if [[ -z "$APP_KEY" ]]; then
   docker compose exec -T php-fpm php artisan key:generate --force
-  # Restart so queue-worker and php-fpm reload .env with the new key.
-  # Without this, queue-worker keeps the empty APP_KEY it read at startup.
+  echo "APP_KEY generated — restarting services to load new key..."
   docker compose restart php-fpm queue-worker
   sleep 3
 fi
 
 docker compose exec -T php-fpm php artisan migrate --force
 docker compose exec -T php-fpm php artisan storage:link 2>/dev/null || true
-docker compose exec -T php-fpm php artisan optimize:clear
+
+# Production cache warming — skip if APP_URL is not set (dev/local mode)
+APP_URL="$(grep '^APP_URL=' .env | cut -d= -f2 || true)"
+if [[ "$APP_URL" == https://* ]]; then
+  docker compose exec -T php-fpm php artisan config:cache
+  docker compose exec -T php-fpm php artisan route:cache
+  docker compose exec -T php-fpm php artisan view:cache
+else
+  docker compose exec -T php-fpm php artisan optimize:clear
+fi
+
+# Restart queue-worker on every deploy so it loads the latest code and config
+docker compose restart queue-worker
 
 # Build frontend assets
 docker run --rm \
+  --env-file .env \
   -v "$(pwd)":/var/www \
   -w /var/www \
   node:22-alpine \
   sh -c "npm ci --silent && npm run build"
 
 rm -f public/hot
+
+if [[ ! -f "public/build/manifest.json" ]]; then
+  echo "ERROR: Frontend build failed — public/build/manifest.json not found"
+  exit 1
+fi
 
 echo "post-deploy complete"
