@@ -2,6 +2,12 @@
 # Run by inteteam-panel DeployAppJob after `docker compose up -d`.
 set -euo pipefail
 
+# Fix storage permissions — git pull (as root) leaves storage/ owned by root.
+# PHP runs as UID 1000 (www) inside the container and must be able to write here.
+mkdir -p storage/app/public storage/framework/{cache,sessions,testing,views} storage/logs bootstrap/cache
+chown -R 1000:1000 storage bootstrap/cache
+chmod -R 775 storage bootstrap/cache
+
 # Wait for MariaDB to be ready
 for i in $(seq 1 30); do
   if docker compose exec -T mariadb sh -c \
