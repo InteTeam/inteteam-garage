@@ -5,6 +5,9 @@ set -euo pipefail
 # Always run from the project root, regardless of caller's working directory.
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
+# Fix .env permissions — panel writes .env as root (600); PHP-FPM (uid 1000) must read it.
+chmod 644 .env 2>/dev/null || true
+
 # Fix storage permissions — git pull (as root) leaves storage/ owned by root.
 # PHP runs as UID 1000 (www) inside the container and must be able to write here.
 mkdir -p storage/app/public storage/framework/{cache,sessions,testing,views} storage/logs bootstrap/cache
