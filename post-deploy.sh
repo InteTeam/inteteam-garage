@@ -48,7 +48,9 @@ APP_KEY="$(grep '^APP_KEY=' .env | cut -d= -f2 || true)"
 if [[ -z "$APP_KEY" ]]; then
   docker compose exec -T php-fpm php artisan key:generate --force
   echo "APP_KEY generated — restarting services to load new key..."
-  docker compose restart php-fpm queue-worker
+  # Restart nginx too: it caches php-fpm's container IP and returns 502 after
+  # php-fpm gets a new IP. See playbook docker/README.md:608-614.
+  docker compose restart php-fpm queue-worker nginx
   sleep 3
 fi
 

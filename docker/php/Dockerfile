@@ -34,8 +34,14 @@ RUN docker-php-ext-configure gd --with-jpeg --with-freetype \
 
 # Install Redis extension
 RUN pecl install redis && docker-php-ext-enable redis
-# Install Xdebug (development only)
-RUN pecl install xdebug && docker-php-ext-enable xdebug
+
+# Install Xdebug (development only) — gate with --build-arg INSTALL_XDEBUG=1
+# Default off to avoid 20-40% per-request overhead in production.
+# Local dev: docker compose build --build-arg INSTALL_XDEBUG=1 php-fpm
+ARG INSTALL_XDEBUG=0
+RUN if [ "$INSTALL_XDEBUG" = "1" ]; then \
+        pecl install xdebug && docker-php-ext-enable xdebug; \
+    fi
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
