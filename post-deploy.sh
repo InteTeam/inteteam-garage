@@ -6,7 +6,13 @@ set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
 # Fix .env permissions — panel writes .env as root (600); PHP-FPM (uid 1000) must read it.
-chmod 644 .env 2>/dev/null || true
+# Container entrypoint (docker/php/entrypoint.sh) also enforces this on every start,
+# but we set it here too so the host-visible file is correct (e.g. for /home/deploy SSH session).
+# Fatal if it fails — panel-driven deploys must surface this signal, not swallow it.
+if [[ -f .env ]]; then
+    chown 1000:1000 .env || { echo "ERROR: chown .env failed — panel-side .env writer must run as root"; exit 1; }
+    chmod 640 .env       || { echo "ERROR: chmod .env failed"; exit 1; }
+fi
 
 # Fix storage permissions — git pull (as root) leaves storage/ owned by root.
 # PHP runs as UID 1000 (www) inside the container and must be able to write here.

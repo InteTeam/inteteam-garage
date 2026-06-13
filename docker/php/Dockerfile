@@ -16,7 +16,8 @@ RUN apk add --no-cache \
     autoconf \
     g++ \
     make \
-    linux-headers
+    linux-headers \
+    su-exec
 
 # Configure and install PHP extensions
 RUN docker-php-ext-configure gd --with-jpeg --with-freetype \
@@ -51,7 +52,12 @@ RUN addgroup -g 1000 www && adduser -u 1000 -G www -s /bin/sh -D www
 # Change ownership
 RUN chown -R www:www /var/www
 
-USER www
+# Entrypoint runs as root to fix .env/storage perms, then drops to www via su-exec.
+# Source of truth for the "panel writes .env as root:600" fix — also handled in
+# post-deploy.sh, but the container guard catches every start path.
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 9000
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["php-fpm"]
