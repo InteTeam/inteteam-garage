@@ -7,7 +7,9 @@ namespace Tests\Feature\Portal;
 use App\Models\Estimate;
 use App\Models\Garage;
 use App\Models\LineItem;
+use App\Models\Mechanic;
 use App\Models\RepairJob;
+use App\Models\User;
 use App\Models\Vehicle;
 use App\Services\EstimateService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -80,6 +82,32 @@ final class EstimateRevisionTest extends TestCase
 
         $job->refresh();
         $this->assertSame($revision2->id, $job->currentEstimate->id);
+    }
+
+    public function test_controller_update_returns_validation_error_after_customer_response(): void
+    {
+        // planning.md L175 — once customer responded, mechanic cannot mutate the estimate.
+        // Controller must surface this as a validation error (302 + session errors), not a 500.
+        $estimate = $this->makeEstimateWithLineItem(LineItem::STATUS_APPROVED);
+        $job = $estimate->repairJob;
+        $garage = $job->garage;
+
+        $user = User::factory()->create();
+        Mechanic::withoutGlobalScopes()->create([
+            'garage_id' => $garage->id,
+            'user_id' => $user->id,
+            'role' => Mechanic::ROLE_GARAGE_ADMIN,
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->withSession(['current_garage_id' => $garage->id])
+            ->put(route('jobs.estimates.update', ['job' => $job->id, 'estimate' => $estimate->id]), [
+                'sent_at' => now()->toIso8601String(),
+            ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHasErrors('estimate');
     }
 
     public function test_new_revision_is_independently_editable_even_when_previous_is_frozen(): void

@@ -12,6 +12,7 @@ use App\Services\EstimateService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
 
 final class EstimateController extends Controller
 {
@@ -56,7 +57,14 @@ final class EstimateController extends Controller
     {
         $this->authorize('update', $estimate);
 
-        $this->estimateService->update($estimate, $request->validated());
+        try {
+            $this->estimateService->update($estimate, $request->validated());
+        } catch (RuntimeException $e) {
+            // planning.md L175 — once the customer has responded, the estimate is sealed;
+            // mechanic must create a new revision. Surface as a validation-style error
+            // instead of a 500.
+            return back()->withErrors(['estimate' => $e->getMessage()]);
+        }
 
         return back()->with(['alert' => 'The estimate was updated.', 'type' => 'success']);
     }

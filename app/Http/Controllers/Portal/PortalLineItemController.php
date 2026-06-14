@@ -11,7 +11,6 @@ use App\Models\RepairJob;
 use App\Services\ApprovalEventService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use RuntimeException;
 
 final class PortalLineItemController extends Controller
 {
@@ -86,8 +85,10 @@ final class PortalLineItemController extends Controller
     {
         $estimate = $job->currentEstimate;
 
-        if ($estimate === null || $lineItem->estimate_id !== $estimate->id) {
-            throw new RuntimeException('Line item does not belong to this job.');
-        }
+        abort_if(
+            $estimate === null || $lineItem->estimate_id !== $estimate->id,
+            404,
+            'Line item does not belong to this job.'
+        );
     }
 }

@@ -41,12 +41,21 @@ Route::middleware(['auth', 'garage'])->group(function () {
     Route::resource('mechanics', MechanicController::class);
 
     Route::prefix('jobs')->name('jobs.')->group(function () {
-        Route::resource('/', JobController::class)->parameters(['' => 'job']);
+        // JobController implements only index/create/store/show — edit/update/destroy not wired (no UI link).
+        Route::resource('/', JobController::class)
+            ->only(['index', 'create', 'store', 'show'])
+            ->parameters(['' => 'job']);
         Route::post('/{job}/transition', [JobController::class, 'transition'])->name('transition');
-        Route::resource('/{job}/stages', JobStageController::class)->parameters(['stages' => 'stage']);
+        // Stages have no create/edit screens — managed inline on RepairJobs/Show.tsx.
+        Route::resource('/{job}/stages', JobStageController::class)
+            ->only(['index', 'store', 'show', 'update', 'destroy'])
+            ->parameters(['stages' => 'stage']);
         Route::patch('/{job}/stages/{stage}/notes', [JobStageController::class, 'updateNotes'])->name('stages.notes.update');
         Route::post('/{job}/stages/{stage}/media', [MediaController::class, 'store'])->name('stages.media.store');
-        Route::resource('/{job}/estimates', EstimateController::class)->parameters(['estimates' => 'estimate']);
+        // Estimates use revision-create-on-update flow — no separate create/edit screens.
+        Route::resource('/{job}/estimates', EstimateController::class)
+            ->only(['index', 'store', 'show', 'update', 'destroy'])
+            ->parameters(['estimates' => 'estimate']);
         Route::post('/{job}/estimates/{estimate}/send', [EstimateLifecycleController::class, 'send'])->name('estimates.send');
         Route::post('/{job}/estimates/{estimate}/preview-translation', [EstimateLifecycleController::class, 'previewTranslation'])->name('estimates.preview-translation');
         Route::post('/{job}/estimates/{estimate}/confirm-translation', [EstimateLifecycleController::class, 'confirmTranslation'])->name('estimates.confirm-translation');

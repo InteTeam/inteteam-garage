@@ -14,7 +14,6 @@ use App\Services\JobStageService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
-use RuntimeException;
 
 final class JobStageController extends Controller
 {
@@ -93,8 +92,6 @@ final class JobStageController extends Controller
 
     private function ensureStageBelongsToJob(JobStage $stage, RepairJob $job): void
     {
-        if ($stage->job_id !== $job->id) {
-            throw new RuntimeException('Stage does not belong to this job.');
-        }
+        abort_if($stage->job_id !== $job->id, 404, 'Stage does not belong to this job.');
     }
 }

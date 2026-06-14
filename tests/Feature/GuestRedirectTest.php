@@ -30,6 +30,11 @@ final class GuestRedirectTest extends TestCase
         yield 'jobs create' => ['GET', '/jobs/create'];
         yield 'vehicles index' => ['GET', '/vehicles'];
         yield 'vehicles create' => ['GET', '/vehicles/create'];
+        yield 'vehicles show' => ['GET', '/vehicles/01HZ0000000000000000000001'];
+        yield 'vehicles edit' => ['GET', '/vehicles/01HZ0000000000000000000001/edit'];
+        // No 'jobs edit' row — Route::resource('/', JobController) is constrained
+        // to ->only(['index','create','store','show']); /jobs/{job}/edit is unregistered,
+        // returns 404, never reaches the auth middleware.
         yield 'mechanics index' => ['GET', '/mechanics'];
         yield 'mechanics create' => ['GET', '/mechanics/create'];
         yield 'mechanics edit' => ['GET', '/mechanics/01HZ0000000000000000000001/edit'];

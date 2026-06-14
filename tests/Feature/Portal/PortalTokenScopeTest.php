@@ -67,7 +67,7 @@ final class PortalTokenScopeTest extends TestCase
         $this->post(route('portal.line-items.approve', [
             'token' => $tokenA->token,
             'lineItem' => $lineItemB->id,
-        ]))->assertStatus(500);
+        ]))->assertNotFound();
 
         $this->assertDatabaseHas('line_items', [
             'id' => $lineItemB->id,
@@ -98,7 +98,7 @@ final class PortalTokenScopeTest extends TestCase
         $this->post(route('portal.line-items.approve', [
             'token' => $tokenA->token,
             'lineItem' => $lineItemB->id,
-        ]))->assertStatus(500);
+        ]))->assertNotFound();
 
         $this->assertDatabaseHas('line_items', [
             'id' => $lineItemB->id,

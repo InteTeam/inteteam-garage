@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\Models\Garage;
 use App\Models\Mechanic;
 use App\Models\User;
+use App\Models\Vehicle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -60,6 +61,46 @@ final class RoleEnforcementTest extends TestCase
 
         $this->assertSame($garage->name, $garage->fresh()->name);
         $this->assertFalse($garage->fresh()->online_payment_enabled);
+    }
+
+    public function test_non_admin_mechanic_cannot_post_jobs_store(): void
+    {
+        [$garage, $user, $mechanic] = $this->setupMechanic(Mechanic::ROLE_MECHANIC);
+        $vehicle = Vehicle::withoutGlobalScopes()->create([
+            'garage_id' => $garage->id,
+            'crm_customer_id' => 'crm-role-1',
+            'registration' => 'RR01 TST',
+            'make' => 'Ford',
+            'model' => 'Focus',
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['current_garage_id' => $garage->id])
+            ->post(route('jobs.store'), [
+                'vehicle_id' => $vehicle->id,
+                'mechanic_ids' => [$mechanic->id],
+            ])
+            ->assertForbidden();
+
+        $this->assertDatabaseCount('repair_jobs', 0);
+    }
+
+    public function test_non_admin_mechanic_cannot_post_vehicles_store(): void
+    {
+        [$garage, $user] = $this->setupMechanic(Mechanic::ROLE_MECHANIC);
+
+        $this->actingAs($user)
+            ->withSession(['current_garage_id' => $garage->id])
+            ->post(route('vehicles.store'), [
+                'crm_customer_id' => 'crm-role-2',
+                'registration' => 'RR02 TST',
+                'make' => 'Ford',
+                'model' => 'Focus',
+                'year' => 2020,
+            ])
+            ->assertForbidden();
+
+        $this->assertDatabaseMissing('vehicles', ['registration' => 'RR02 TST']);
     }
 
     public function test_admin_mechanic_can_update_settings(): void

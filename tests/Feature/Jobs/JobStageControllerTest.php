@@ -79,7 +79,7 @@ final class JobStageControllerTest extends TestCase
             ->put(route('jobs.stages.update', ['job' => $jobA->id, 'stage' => $stageOnB->id]), [
                 'name' => 'tampered',
             ])
-            ->assertStatus(500);
+            ->assertNotFound();
 
         $this->assertDatabaseHas('job_stages', [
             'id' => $stageOnB->id,
@@ -142,7 +142,7 @@ final class JobStageControllerTest extends TestCase
             ->patch(route('jobs.stages.notes.update', ['job' => $jobA->id, 'stage' => $stageOnB->id]), [
                 'notes' => 'cross-job tamper',
             ])
-            ->assertStatus(500);
+            ->assertNotFound();
 
         $this->assertDatabaseHas('job_stages', [
             'id' => $stageOnB->id,
