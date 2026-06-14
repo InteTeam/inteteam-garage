@@ -259,7 +259,7 @@ integen generates `company_id` and `HasCompanyScope`. This project uses `garage_
 
 **Goal:** All gates pass. Playbook audit complete. Ready for staging deploy.
 
-- [x] `php artisan test` — 117 passed (302 assertions) — count updated after 2026-06-07 playbook audit (added JobStageControllerTest, surfaced + fixed 5 pre-existing blockers)
+- [x] `php artisan test` — 176 passed (483 assertions) — count updated 2026-06-14 after the 5th playbook audit (Route::resource constraints, RuntimeException→abort(404) refactor across 3 controllers, EstimateController::update try/catch, JobService extraction, MechanicService::listUnassignedUsers, +3 role-enforcement tests, +1 EstimateRevision controller test, +`vehicles show`/`edit` GuestRedirect rows, -`jobs edit` GuestRedirect row after route was unregistered).
 - [x] `phpstan analyse --memory-limit=512M` — level 5, zero errors (107 files)
 - [x] `pint --dirty` — zero formatting issues
 - [x] `npm run build` — zero TypeScript errors
