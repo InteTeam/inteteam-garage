@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\RepairJob\StoreJobRequest;
 use App\Models\RepairJob;
 use App\Services\CrmNotificationService;
+use App\Services\JobService;
 use App\Services\JobStateMachine;
+use App\Services\MechanicService;
+use App\Services\VehicleService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -17,6 +21,9 @@ final class JobController extends Controller
     public function __construct(
         private readonly JobStateMachine $stateMachine,
         private readonly CrmNotificationService $notifications,
+        private readonly VehicleService $vehicles,
+        private readonly MechanicService $mechanics,
+        private readonly JobService $jobs,
     ) {}
 
     public function index(): Response
@@ -28,6 +35,28 @@ final class JobController extends Controller
         return Inertia::render('RepairJobs/Index', [
             'jobs' => $jobs,
         ]);
+    }
+
+    public function create(): Response
+    {
+        $this->authorize('create', RepairJob::class);
+
+        return Inertia::render('RepairJobs/Form', [
+            'vehicles' => $this->vehicles->listForJobPicker(),
+            'mechanics' => $this->mechanics->listForJobPicker(),
+        ]);
+    }
+
+    public function store(StoreJobRequest $request): RedirectResponse
+    {
+        $this->authorize('create', RepairJob::class);
+
+        /** @var array{vehicle_id: string, mechanic_ids: list<string>} $data */
+        $data = $request->validated();
+        $this->jobs->create($data);
+
+        return redirect()->route('jobs.index')
+            ->with(['alert' => 'The job was created.', 'type' => 'success']);
     }
 
     public function show(RepairJob $job): Response

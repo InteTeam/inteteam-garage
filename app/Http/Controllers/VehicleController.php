@@ -27,6 +27,15 @@ final class VehicleController extends Controller
         ]);
     }
 
+    public function create(): Response
+    {
+        $this->authorize('create', Vehicle::class);
+
+        return Inertia::render('Vehicles/Form', [
+            'returningCustomerIds' => $this->vehicleService->getReturningCustomerIds(),
+        ]);
+    }
+
     public function store(StoreVehicleRequest $request): RedirectResponse
     {
         $this->authorize('create', Vehicle::class);
@@ -43,6 +52,16 @@ final class VehicleController extends Controller
 
         return Inertia::render('Vehicles/Show', [
             'vehicle' => $vehicle,
+        ]);
+    }
+
+    public function edit(Vehicle $vehicle): Response
+    {
+        $this->authorize('update', $vehicle);
+
+        return Inertia::render('Vehicles/Form', [
+            'vehicle' => $vehicle,
+            'returningCustomerIds' => $this->vehicleService->getReturningCustomerIds(),
         ]);
     }
 

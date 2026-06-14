@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Mechanic;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 
 final class MechanicService
@@ -12,8 +13,42 @@ final class MechanicService
     public function getAll(): Collection
     {
         return Mechanic::query()
+            ->with('user:id,name,email')
             ->orderBy('created_at', 'desc')
             ->get();
+    }
+
+    /**
+     * Slim active-mechanic list for the job-create picker.
+     *
+     * @return \Illuminate\Support\Collection<int, array{id: string, name: string, role: string}>
+     */
+    public function listForJobPicker(): \Illuminate\Support\Collection
+    {
+        return Mechanic::query()
+            ->with('user:id,name')
+            ->where('is_active', true)
+            ->get(['id', 'user_id', 'role'])
+            ->map(fn (Mechanic $m) => [
+                'id' => $m->id,
+                'name' => $m->user->name,
+                'role' => $m->role,
+            ])
+            ->values();
+    }
+
+    /**
+     * Users that don't yet have a Mechanic record in any garage.
+     * Surfaced in the mechanic-create picker.
+     *
+     * @return Collection<int, User>
+     */
+    public function listUnassignedUsers(): Collection
+    {
+        return User::query()
+            ->whereDoesntHave('mechanic', fn ($q) => $q->withoutGlobalScopes())
+            ->orderBy('name')
+            ->get(['id', 'name', 'email']);
     }
 
     public function create(array $data): Mechanic
