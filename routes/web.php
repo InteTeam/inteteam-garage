@@ -7,6 +7,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EstimateController;
 use App\Http\Controllers\EstimateLifecycleController;
 use App\Http\Controllers\GarageSettingsController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\JobController;
 use App\Http\Controllers\JobMechanicController;
 use App\Http\Controllers\JobNotificationPreferenceController;
@@ -31,11 +32,20 @@ Route::post('/logout', [SsoLoginController::class, 'logout'])->name('logout');
 
 /*
 |--------------------------------------------------------------------------
+| Public Landing
+|--------------------------------------------------------------------------
+| Guests see the marketing landing; authenticated mechanics are forwarded
+| to /dashboard so the `garage` middleware (EnsureGarageContext) runs.
+*/
+Route::get('/', [HomeController::class, 'index'])->name('home');
+
+/*
+|--------------------------------------------------------------------------
 | Authenticated Mechanic/Admin Routes
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth', 'garage'])->group(function () {
-    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::resource('vehicles', VehicleController::class);
     Route::resource('mechanics', MechanicController::class);

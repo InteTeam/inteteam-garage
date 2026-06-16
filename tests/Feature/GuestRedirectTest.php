@@ -25,7 +25,7 @@ final class GuestRedirectTest extends TestCase
      */
     public static function protectedRoutes(): iterable
     {
-        yield 'dashboard' => ['GET', '/'];
+        yield 'dashboard' => ['GET', '/dashboard'];
         yield 'jobs index' => ['GET', '/jobs'];
         yield 'jobs create' => ['GET', '/jobs/create'];
         yield 'vehicles index' => ['GET', '/vehicles'];

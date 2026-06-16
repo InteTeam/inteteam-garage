@@ -80,7 +80,7 @@ final class SsoLoginController extends Controller
         Auth::login($user);
         session(['current_garage_id' => $mechanic->garage_id]);
 
-        return redirect()->intended('/');
+        return redirect()->intended(route('dashboard'));
     }
 
     public function logout(Request $request): RedirectResponse
