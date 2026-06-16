@@ -1,1 +1,120 @@
 @import "tailwindcss";
+
+html { scroll-behavior: smooth; }
+
+@keyframes home-fade-up {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes home-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+@keyframes home-float {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    50%      { transform: translate3d(0, -14px, 0); }
+}
+@keyframes home-blob {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+    33%      { transform: translate3d(20px, -30px, 0) scale(1.05); }
+    66%      { transform: translate3d(-15px, 20px, 0) scale(0.97); }
+}
+@keyframes home-gradient-pan {
+    0%, 100% { background-position: 0% 50%; }
+    50%      { background-position: 100% 50%; }
+}
+@keyframes home-pulse-ring {
+    0%   { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55); }
+    70%  { box-shadow: 0 0 0 12px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+@keyframes home-marquee {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+}
+@keyframes home-shimmer {
+    from { background-position: -200% 0; }
+    to   { background-position: 200% 0; }
+}
+
+.home-reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+}
+.home-reveal.is-in {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.home-fade-up    { animation: home-fade-up 0.7s ease-out both; }
+.home-fade-in    { animation: home-fade-in 0.9s ease-out both; }
+.home-float      { animation: home-float 6s ease-in-out infinite; }
+.home-blob       { animation: home-blob 18s ease-in-out infinite; }
+.home-pulse-ring { animation: home-pulse-ring 2s ease-out infinite; }
+.home-marquee    { animation: home-marquee 28s linear infinite; }
+
+.home-gradient-text {
+    background: linear-gradient(110deg, #10b981 0%, #0ea5e9 30%, #6366f1 60%, #10b981 100%);
+    background-size: 250% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: home-gradient-pan 8s ease-in-out infinite;
+}
+
+.home-grid-bg {
+    background-image:
+        linear-gradient(to right, rgba(15, 23, 42, 0.06) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(15, 23, 42, 0.06) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black 35%, transparent 75%);
+    -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black 35%, transparent 75%);
+}
+
+.home-dot-bg {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+    background-size: 22px 22px;
+}
+
+.home-card-glow {
+    position: relative;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.home-card-glow::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(130deg, rgba(16, 185, 129, 0) 0%, rgba(16, 185, 129, 0.45) 50%, rgba(99, 102, 241, 0) 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+.home-card-glow:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 18px 40px -20px rgba(15, 23, 42, 0.18);
+}
+.home-card-glow:hover::before { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+    .home-reveal,
+    .home-fade-up,
+    .home-fade-in,
+    .home-float,
+    .home-blob,
+    .home-pulse-ring,
+    .home-marquee,
+    .home-gradient-text,
+    .home-card-glow { animation: none !important; transition: none !important; opacity: 1 !important; transform: none !important; }
+    .home-card-glow:hover { transform: none !important; box-shadow: none !important; }
+    .home-card-glow:hover::before { opacity: 0 !important; }
+    .home-reveal { opacity: 1; transform: none; }
+    .home-gradient-text { color: #10b981; }
+    html { scroll-behavior: auto; }
+}

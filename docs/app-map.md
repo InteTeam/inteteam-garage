@@ -14,7 +14,7 @@ The single reference for "what lives where" in this repo. Read this **before** m
 | `mechanic` | Inte.Team SSO → User → Mechanic | `Mechanic::ROLE_MECHANIC` | Mechanic dashboard, no settings |
 | Customer (portal) | Signed `SignedPortalToken` URL — no SSO | none | Portal routes (`routes/portal.php`), token-scoped to one job |
 | System | n/a | `ApprovalEvent::ACTOR_SYSTEM` | Scheduled commands, webhooks |
-| Anonymous | n/a | n/a | `GET /login` (SSO redirect), `POST /webhooks/payment-confirmed` |
+| Anonymous | n/a | n/a | `GET /` (public landing), `GET /login` (SSO redirect), `POST /webhooks/payment-confirmed` |
 
 Multi-tenancy is per-`Garage`. Every tenant model uses `HasGarageScope` (resolves from `session('current_garage_id')` via `EnsureGarageContext` middleware).
 
@@ -29,7 +29,8 @@ Multi-tenancy is per-`Garage`. Every tenant model uses `HasGarageScope` (resolve
 | GET | `/login` | `Auth\SsoLoginController@redirect` | Redirects to SSO `/oauth/authorize` |
 | GET | `/auth/callback` | `Auth\SsoLoginController@callback` | Exchanges code → token, resolves Mechanic |
 | POST | `/logout` | `Auth\SsoLoginController@logout` | |
-| GET | `/` | `DashboardController@index` | Garage overview |
+| GET | `/` | `HomeController@index` | **Public landing.** Guests get `Pages/Home.tsx` (mobile-first marketing page). Authed users 302 → `/dashboard` (preserves `EnsureGarageContext` middleware chain). |
+| GET | `/dashboard` | `DashboardController@index` | Garage overview (authed). `SsoLoginController::callback` now redirects to `route('dashboard')` instead of `/` to skip the home-page hop. |
 | resource | `/vehicles` | `VehicleController` | Full CRUD (index/create/store/show/edit/update/destroy). Admin-only `create/store/edit/update/destroy` per `VehiclePolicy`. `StoreVehicleRequest` server-validates `crm_customer_id` via `CrmApiService::getCustomer()` — 404 → field error, network/5xx → log + pass (graceful CRM-down). `year` clamped `between:1900,Y+1` (next-year derived per request). |
 | resource | `/mechanics` | `MechanicController` | Full CRUD (admin only). `MechanicService::listUnassignedUsers()` powers the create picker (users with no mechanic record in any garage). |
 | resource | `/jobs` | `JobController` | **Constrained to `->only(['index','create','store','show'])`** — `edit/update/destroy` deliberately not wired (no UI link). `JobController::store` delegates to `JobService::create` which wraps `RepairJob::create` + `mechanics()->sync` in `DB::transaction`. |
@@ -212,6 +213,7 @@ All business logic lives in `app/Services/`. Controllers delegate to services; s
 ## Gotchas
 
 - **`SSO_URL` vs `SSO_PUBLIC_URL`.** Browser redirect to `/oauth/authorize` uses `services.sso.public_url` (`http://localhost:8088` for dev). Server-side token/userinfo calls use `services.sso.url` (`http://host.docker.internal:8088`). Container-side `localhost` ≠ host's `localhost`.
+- **Public landing `/` — Sign-in CTAs are plain `<a>`, NOT Inertia `<Link>`.** `HomeController` renders `Pages/Home.tsx` for guests, 302→`/dashboard` for authed (so `EnsureGarageContext` still runs on protected pages). All four `/login` CTAs in `Home.tsx` (header, hero, final CTA, footer) are `<a href="/login">`. Inertia `<Link>` would XHR to `/login` with `X-Inertia: true`, Laravel returns 302 to the SSO host (`localhost:8088`), browser blocks cross-origin XHR redirect → button silently does nothing. If a future refactor rewrites them as `<Link>` thinking it's the convention, sign-in breaks in incognito. Same rule applies to any future public page that has a sign-in / external-redirect CTA.
 - **GCS keys path.** Passport-style: `Passport::loadKeysFrom(base_path())` in `AppServiceProvider` (not storage_path).
 - **`APP_URL` must include `:8085`.** `route('auth.callback')` builds the redirect URI from `APP_URL`; if port is missing the SSO client redirect_uri whitelist won't match.
 - **OneDrive bind mount + opcache.** `opcache.validate_timestamps=0` is on (set in `docker/php/php.ini`); after any PHP edit run `docker compose exec php-fpm php artisan optimize:clear` or restart `php-fpm` + `nginx` so the new code is loaded.
