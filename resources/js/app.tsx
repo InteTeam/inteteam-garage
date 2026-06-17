@@ -1,5 +1,7 @@
+/// <reference types="vite-plugin-pwa/client" />
 import './bootstrap';
 import '../css/app.css';
+import { registerSW } from 'virtual:pwa-register';
 import { route } from 'ziggy-js';
 
 declare global { function route(...args: Parameters<typeof route>): ReturnType<typeof route>; }
@@ -32,3 +34,5 @@ createInertiaApp({
         color: '#4B5563',
     },
 });
+
+registerSW({ immediate: true });
