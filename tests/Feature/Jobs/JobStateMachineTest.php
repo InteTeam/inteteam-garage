@@ -17,7 +17,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
 use Tests\TestCase;
 
-class JobStateMachineTest extends TestCase
+final class JobStateMachineTest extends TestCase
 {
     use RefreshDatabase;
 

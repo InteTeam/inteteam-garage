@@ -15,7 +15,7 @@ use App\Services\JobStateMachine;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class StageLockTest extends TestCase
+final class StageLockTest extends TestCase
 {
     use RefreshDatabase;
 

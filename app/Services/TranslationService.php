@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\Garage;
+use App\Models\RepairJob;
+use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -11,7 +14,6 @@ use Illuminate\Support\Facades\Log;
 final class TranslationService
 {
     public const SUPPORTED_LOCALES = ['en', 'pl'];
-
 
     private const GLOSSARY = [
         'brake pads' => 'klocki hamulcowe',
@@ -79,6 +81,32 @@ final class TranslationService
         return Cache::remember($cacheKey, now()->addDay(), function () use ($text) {
             return $this->callDetect($text);
         });
+    }
+
+    /**
+     * Resolves [mechanicLocale, customerLocale] for translations between a mechanic
+     * (acting on a repair job) and the job's customer. Falls back to garage default
+     * for both sides when no override is set. CRM lookup failures degrade silently
+     * to the garage default rather than blocking the request.
+     *
+     * @return array{0: string, 1: string}
+     */
+    public function resolveLocalePairForJob(RepairJob $job, User $user, CrmApiService $crm): array
+    {
+        $job->load(['garage', 'vehicle']);
+
+        /** @var Garage $garage */
+        $garage = $job->garage;
+        $garageLocale = $garage->locale;
+
+        $fromLocale = $user->mechanic?->resolvedLocale() ?? $garageLocale;
+
+        $crmCustomerId = (string) ($job->vehicle->crm_customer_id ?? '');
+        $toLocale = ($crmCustomerId !== ''
+            ? $crm->getCustomerLocale($crmCustomerId)
+            : null) ?? $garageLocale;
+
+        return [$fromLocale, $toLocale];
     }
 
     public function verifySourceLocale(string $configured, string $sampleText): string

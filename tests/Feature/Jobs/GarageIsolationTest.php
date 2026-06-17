@@ -12,7 +12,7 @@ use App\Models\Vehicle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class GarageIsolationTest extends TestCase
+final class GarageIsolationTest extends TestCase
 {
     use RefreshDatabase;
 

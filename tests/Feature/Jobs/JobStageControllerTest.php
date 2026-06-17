@@ -77,7 +77,7 @@ final class JobStageControllerTest extends TestCase
         $this->actingAs($user)
             ->withSession(['current_garage_id' => $garage->id])
             ->put(route('jobs.stages.update', ['job' => $jobA->id, 'stage' => $stageOnB->id]), [
-                'name' => 'tampered',
+                'name' => JobStage::STAGE_REPAIR,
             ])
             ->assertNotFound();
 

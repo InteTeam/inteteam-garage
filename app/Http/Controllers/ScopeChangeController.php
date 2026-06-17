@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ScopeChange\StoreScopeChangeRequest;
 use App\Models\RepairJob;
 use App\Services\CrmNotificationService;
 use App\Services\ScopeChangeService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 
 final class ScopeChangeController extends Controller
 {
@@ -17,15 +17,12 @@ final class ScopeChangeController extends Controller
         private readonly CrmNotificationService $notifications,
     ) {}
 
-    public function store(Request $request, RepairJob $job): RedirectResponse
+    public function store(StoreScopeChangeRequest $request, RepairJob $job): RedirectResponse
     {
         $this->authorize('update', $job);
 
-        $validated = $request->validate([
-            'line_items' => ['required', 'array', 'min:1'],
-            'line_items.*.description' => ['required', 'string', 'max:255'],
-            'line_items.*.price' => ['required', 'numeric', 'min:0'],
-        ]);
+        /** @var array{line_items: list<array{description: string, price: numeric}>} $validated */
+        $validated = $request->validated();
 
         $this->scopeChangeService->create(
             $job,

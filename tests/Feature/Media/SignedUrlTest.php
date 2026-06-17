@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Storage;
 use Mockery;
 use Tests\TestCase;
 
-class SignedUrlTest extends TestCase
+final class SignedUrlTest extends TestCase
 {
     use RefreshDatabase;
 

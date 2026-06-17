@@ -6,9 +6,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Estimate\ConfirmTranslationRequest;
 use App\Models\Estimate;
-use App\Models\Garage;
 use App\Models\LineItem;
 use App\Models\RepairJob;
+use App\Models\User;
 use App\Services\CrmApiService;
 use App\Services\CrmNotificationService;
 use App\Services\EstimateService;
@@ -32,7 +32,9 @@ final class EstimateLifecycleController extends Controller
     {
         $this->authorize('update', $job);
 
-        [$fromLocale, $toLocale] = $this->resolveLocalePair($job);
+        /** @var User $user */
+        $user = auth()->user();
+        [$fromLocale, $toLocale] = $this->translationService->resolveLocalePairForJob($job, $user, $this->crm);
 
         try {
             $this->estimateService->guardSendable($estimate, $fromLocale, $toLocale);
@@ -51,7 +53,9 @@ final class EstimateLifecycleController extends Controller
 
         $estimate->load('lineItems');
 
-        [$configuredFrom, $toLocale] = $this->resolveLocalePair($job);
+        /** @var User $user */
+        $user = auth()->user();
+        [$configuredFrom, $toLocale] = $this->translationService->resolveLocalePairForJob($job, $user, $this->crm);
 
         $sampleText = (string) ($estimate->lineItems->first()->description ?? '');
         $fromLocale = $sampleText !== ''
@@ -77,7 +81,7 @@ final class EstimateLifecycleController extends Controller
     {
         $this->authorize('update', $estimate);
 
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = $request->user();
         $mechanic = $user->mechanic;
         $mechanicId = $mechanic === null ? '' : $mechanic->id;
@@ -85,28 +89,5 @@ final class EstimateLifecycleController extends Controller
         $this->estimateService->confirmTranslation($estimate, $request->validated()['confirmations'], $mechanicId);
 
         return back()->with(['alert' => 'The translation preview was confirmed.', 'type' => 'success']);
-    }
-
-    /**
-     * @return array{0: string, 1: string}
-     */
-    private function resolveLocalePair(RepairJob $job): array
-    {
-        $job->load(['garage', 'vehicle']);
-
-        /** @var Garage $garage */
-        $garage = $job->garage;
-        $garageLocale = $garage->locale;
-
-        /** @var \App\Models\User $user */
-        $user = auth()->user();
-        $fromLocale = $user->mechanic?->resolvedLocale() ?? $garageLocale;
-
-        $crmCustomerId = (string) ($job->vehicle->crm_customer_id ?? '');
-        $toLocale = ($crmCustomerId !== ''
-            ? $this->crm->getCustomerLocale($crmCustomerId)
-            : null) ?? $garageLocale;
-
-        return [$fromLocale, $toLocale];
     }
 }

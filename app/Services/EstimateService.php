@@ -25,6 +25,26 @@ final class EstimateService
         return Estimate::create($data);
     }
 
+    /**
+     * Creates the next revision of an estimate for the job. The parent job row
+     * is locked for the duration so two concurrent POSTs cannot both compute
+     * the same `max + 1` revision number and double-insert.
+     */
+    public function createForJob(RepairJob $job): Estimate
+    {
+        return DB::transaction(function () use ($job): Estimate {
+            RepairJob::query()->whereKey($job->id)->lockForUpdate()->first();
+
+            $nextRevision = (int) ($job->estimates()->max('revision_number') ?? 0) + 1;
+
+            return Estimate::create([
+                'garage_id' => $job->garage_id,
+                'job_id' => $job->id,
+                'revision_number' => $nextRevision,
+            ]);
+        });
+    }
+
     public function update(Estimate $estimate, array $data): Estimate
     {
         if ($estimate->hasCustomerResponse()) {

@@ -33,13 +33,7 @@ final class EstimateController extends Controller
     {
         $this->authorize('create', Estimate::class);
 
-        $nextRevision = ($job->estimates()->max('revision_number') ?? 0) + 1;
-
-        $this->estimateService->create([
-            'garage_id' => $job->garage_id,
-            'job_id' => $job->id,
-            'revision_number' => $nextRevision,
-        ]);
+        $this->estimateService->createForJob($job);
 
         return back()->with(['alert' => 'The estimate was created.', 'type' => 'success']);
     }

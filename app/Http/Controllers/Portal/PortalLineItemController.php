@@ -5,17 +5,18 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
-use App\Models\ApprovalEvent;
+use App\Http\Requests\Portal\AskLineItemQuestionRequest;
+use App\Http\Requests\Portal\DeclineLineItemRequest;
 use App\Models\LineItem;
 use App\Models\RepairJob;
-use App\Services\ApprovalEventService;
+use App\Services\LineItemDecisionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 final class PortalLineItemController extends Controller
 {
     public function __construct(
-        private readonly ApprovalEventService $approvalEventService,
+        private readonly LineItemDecisionService $decisions,
     ) {}
 
     public function approve(Request $request, string $token, LineItem $lineItem): RedirectResponse
@@ -24,59 +25,35 @@ final class PortalLineItemController extends Controller
         $job = $request->attributes->get('portal_job');
         $this->ensureLineItemBelongsToJob($lineItem, $job);
 
-        $lineItem->update(['status' => LineItem::STATUS_APPROVED]);
-
-        $this->approvalEventService->record(
-            job: $job,
-            eventType: ApprovalEvent::EVENT_LINE_ITEM_APPROVED,
-            actorType: ApprovalEvent::ACTOR_CUSTOMER,
-            payload: ['line_item_id' => $lineItem->id, 'description' => $lineItem->description],
-        );
+        $this->decisions->approve($job, $lineItem);
 
         return back()->with(['alert' => 'The item was approved.', 'type' => 'success']);
     }
 
-    public function decline(Request $request, string $token, LineItem $lineItem): RedirectResponse
+    public function decline(DeclineLineItemRequest $request, string $token, LineItem $lineItem): RedirectResponse
     {
         /** @var RepairJob $job */
         $job = $request->attributes->get('portal_job');
         $this->ensureLineItemBelongsToJob($lineItem, $job);
 
-        $validated = $request->validate([
-            'notes' => ['required', 'string', 'max:1000'],
-        ]);
+        /** @var array{notes: string} $validated */
+        $validated = $request->validated();
 
-        $lineItem->update([
-            'status' => LineItem::STATUS_DECLINED,
-            'customer_notes' => $validated['notes'],
-        ]);
-
-        $this->approvalEventService->record(
-            job: $job,
-            eventType: ApprovalEvent::EVENT_LINE_ITEM_DECLINED,
-            actorType: ApprovalEvent::ACTOR_CUSTOMER,
-            payload: ['line_item_id' => $lineItem->id, 'notes' => $validated['notes']],
-        );
+        $this->decisions->decline($job, $lineItem, $validated['notes']);
 
         return back()->with(['alert' => 'The item was declined.', 'type' => 'success']);
     }
 
-    public function question(Request $request, string $token, LineItem $lineItem): RedirectResponse
+    public function question(AskLineItemQuestionRequest $request, string $token, LineItem $lineItem): RedirectResponse
     {
         /** @var RepairJob $job */
         $job = $request->attributes->get('portal_job');
         $this->ensureLineItemBelongsToJob($lineItem, $job);
 
-        $validated = $request->validate([
-            'message' => ['required', 'string', 'max:2000'],
-        ]);
+        /** @var array{message: string} $validated */
+        $validated = $request->validated();
 
-        $this->approvalEventService->record(
-            job: $job,
-            eventType: ApprovalEvent::EVENT_CUSTOMER_QUESTION,
-            actorType: ApprovalEvent::ACTOR_CUSTOMER,
-            payload: ['line_item_id' => $lineItem->id, 'message' => $validated['message']],
-        );
+        $this->decisions->question($job, $lineItem, $validated['message']);
 
         return back()->with(['alert' => 'The question was sent to the mechanic.', 'type' => 'success']);
     }

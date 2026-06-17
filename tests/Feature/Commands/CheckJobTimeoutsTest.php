@@ -16,7 +16,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
-class CheckJobTimeoutsTest extends TestCase
+final class CheckJobTimeoutsTest extends TestCase
 {
     use RefreshDatabase;
 

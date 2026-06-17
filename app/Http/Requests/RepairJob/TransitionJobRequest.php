@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Requests\JobStage;
+namespace App\Http\Requests\RepairJob;
 
-use App\Models\JobStage;
+use App\Models\RepairJob;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-final class StoreJobStageRequest extends FormRequest
+final class TransitionJobRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -21,9 +21,7 @@ final class StoreJobStageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', Rule::in(JobStage::STAGES)],
-            'sort_order' => ['required', 'integer'],
-            'locked_at' => ['nullable', 'date'],
+            'state' => ['required', Rule::in(RepairJob::STATES)],
         ];
     }
 }

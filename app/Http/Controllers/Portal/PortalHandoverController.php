@@ -5,13 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
-use App\Models\ApprovalEvent;
-use App\Models\Estimate;
-use App\Models\HandoverInspection;
-use App\Models\HandoverItem;
+use App\Http\Requests\Portal\SubmitHandoverRequest;
 use App\Models\RepairJob;
-use App\Services\ApprovalEventService;
-use App\Services\CrmStaffNotificationService;
+use App\Services\HandoverInspectionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -20,8 +16,7 @@ use Inertia\Response;
 final class PortalHandoverController extends Controller
 {
     public function __construct(
-        private readonly ApprovalEventService $approvalEventService,
-        private readonly CrmStaffNotificationService $staffNotifications,
+        private readonly HandoverInspectionService $handoverService,
     ) {}
 
     public function show(Request $request, string $token): Response
@@ -37,7 +32,7 @@ final class PortalHandoverController extends Controller
         ]);
     }
 
-    public function submit(Request $request, string $token): RedirectResponse
+    public function submit(SubmitHandoverRequest $request, string $token): RedirectResponse
     {
         /** @var RepairJob $job */
         $job = $request->attributes->get('portal_job');
@@ -46,16 +41,8 @@ final class PortalHandoverController extends Controller
             return back()->withErrors(['handover' => 'Handover has already been submitted.']);
         }
 
-        /** @var Estimate|null $estimate */
-        $estimate = $job->currentEstimate;
-        $lineItems = $estimate !== null ? $estimate->lineItems : collect();
-
-        $validated = $request->validate([
-            'items' => ['required', 'array', 'min:1'],
-            'items.*.line_item_id' => ['required', 'ulid'],
-            'items.*.accepted' => ['required', 'boolean'],
-            'items.*.notes' => ['nullable', 'string', 'max:1000'],
-        ]);
+        /** @var array{items: list<array{line_item_id: string, accepted: bool, notes?: string|null}>} $validated */
+        $validated = $request->validated();
 
         foreach ($validated['items'] as $item) {
             if (! $item['accepted'] && empty($item['notes'])) {
@@ -65,40 +52,7 @@ final class PortalHandoverController extends Controller
             }
         }
 
-        $inspection = HandoverInspection::withoutGlobalScopes()->create([
-            'garage_id' => $job->garage_id,
-            'job_id' => $job->id,
-            'submitted_by_token' => $token,
-            'submitted_at' => now(),
-        ]);
-
-        foreach ($validated['items'] as $item) {
-            HandoverItem::withoutGlobalScopes()->create([
-                'garage_id' => $job->garage_id,
-                'handover_inspection_id' => $inspection->id,
-                'line_item_id' => $item['line_item_id'],
-                'accepted' => $item['accepted'],
-                'notes' => $item['notes'] ?? null,
-            ]);
-        }
-
-        $this->approvalEventService->record(
-            job: $job,
-            eventType: ApprovalEvent::EVENT_HANDOVER_SUBMITTED,
-            actorType: ApprovalEvent::ACTOR_CUSTOMER,
-            payload: ['items_count' => count($validated['items'])],
-        );
-
-        $flagged = collect($validated['items'])->contains(
-            fn (array $item) => $item['accepted'] === false || ! empty($item['notes'] ?? null)
-        );
-
-        if ($flagged) {
-            $job->load('mechanics.user');
-            foreach ($job->mechanics as $mechanic) {
-                $this->staffNotifications->notifyHandoverFlaggedToMechanic($job, $mechanic);
-            }
-        }
+        $this->handoverService->submitFromPortal($job, $validated['items'], $token);
 
         return redirect()->route('portal.show', $token)
             ->with(['alert' => 'The handover was submitted successfully.', 'type' => 'success']);

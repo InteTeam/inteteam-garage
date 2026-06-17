@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\LineItem\PreviewLineItemResponseRequest;
+use App\Http\Requests\LineItem\StoreLineItemResponseRequest;
 use App\Models\ApprovalEvent;
-use App\Models\Garage;
 use App\Models\LineItem;
 use App\Models\RepairJob;
+use App\Models\User;
 use App\Services\ApprovalEventService;
 use App\Services\CrmApiService;
 use App\Services\CrmNotificationService;
@@ -15,7 +17,6 @@ use App\Services\JobStateMachine;
 use App\Services\TranslationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 final class LineItemResponseController extends Controller
@@ -28,17 +29,17 @@ final class LineItemResponseController extends Controller
         private readonly CrmApiService $crm,
     ) {}
 
-    public function store(Request $request, RepairJob $job, LineItem $lineItem): RedirectResponse
+    public function store(StoreLineItemResponseRequest $request, RepairJob $job, LineItem $lineItem): RedirectResponse
     {
         $this->authorize('update', $job);
         $this->ensureLineItemBelongsToJob($lineItem, $job);
 
-        $validated = $request->validate([
-            'message' => ['required', 'string', 'max:2000'],
-            'translated_message' => ['sometimes', 'nullable', 'string', 'max:2000'],
-        ]);
+        /** @var array{message: string, translated_message?: string|null} $validated */
+        $validated = $request->validated();
 
-        [$fromLocale, $toLocale] = $this->resolveLocalePair($job, $request);
+        /** @var User $user */
+        $user = $request->user();
+        [$fromLocale, $toLocale] = $this->translation->resolveLocalePairForJob($job, $user, $this->crm);
 
         if ($fromLocale !== $toLocale && empty($validated['translated_message'] ?? null)) {
             throw ValidationException::withMessages([
@@ -46,7 +47,7 @@ final class LineItemResponseController extends Controller
             ]);
         }
 
-        $actorId = (string) $request->user()->id;
+        $actorId = (string) $user->id;
 
         $payload = [
             'line_item_id' => $lineItem->id,
@@ -77,16 +78,17 @@ final class LineItemResponseController extends Controller
         return back()->with(['alert' => 'The response was sent to the customer.', 'type' => 'success']);
     }
 
-    public function preview(Request $request, RepairJob $job, LineItem $lineItem): JsonResponse
+    public function preview(PreviewLineItemResponseRequest $request, RepairJob $job, LineItem $lineItem): JsonResponse
     {
         $this->authorize('update', $job);
         $this->ensureLineItemBelongsToJob($lineItem, $job);
 
-        $validated = $request->validate([
-            'message' => ['required', 'string', 'max:2000'],
-        ]);
+        /** @var array{message: string} $validated */
+        $validated = $request->validated();
 
-        [$configuredFrom, $toLocale] = $this->resolveLocalePair($job, $request);
+        /** @var User $user */
+        $user = $request->user();
+        [$configuredFrom, $toLocale] = $this->translation->resolveLocalePairForJob($job, $user, $this->crm);
 
         $fromLocale = $this->translation->verifySourceLocale($configuredFrom, $validated['message']);
 
@@ -103,27 +105,6 @@ final class LineItemResponseController extends Controller
             'auto_detected_override' => $fromLocale !== $configuredFrom,
             'translated_by_ai' => $translated !== $validated['message'],
         ]);
-    }
-
-    /**
-     * @return array{0: string, 1: string}
-     */
-    private function resolveLocalePair(RepairJob $job, Request $request): array
-    {
-        $job->load(['garage', 'vehicle']);
-
-        /** @var Garage $garage */
-        $garage = $job->garage;
-        $garageLocale = $garage->locale;
-
-        $fromLocale = $request->user()->mechanic?->resolvedLocale() ?? $garageLocale;
-
-        $crmCustomerId = (string) ($job->vehicle->crm_customer_id ?? '');
-        $toLocale = ($crmCustomerId !== ''
-            ? $this->crm->getCustomerLocale($crmCustomerId)
-            : null) ?? $garageLocale;
-
-        return [$fromLocale, $toLocale];
     }
 
     private function ensureLineItemBelongsToJob(LineItem $lineItem, RepairJob $job): void

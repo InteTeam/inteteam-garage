@@ -15,7 +15,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
-class MediaUploadTest extends TestCase
+final class MediaUploadTest extends TestCase
 {
     use RefreshDatabase;
 

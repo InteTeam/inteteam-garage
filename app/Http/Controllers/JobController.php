@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Http\Requests\RepairJob\StoreJobRequest;
+use App\Http\Requests\RepairJob\TransitionJobRequest;
 use App\Models\RepairJob;
 use App\Services\CrmNotificationService;
 use App\Services\JobService;
@@ -12,7 +13,6 @@ use App\Services\JobStateMachine;
 use App\Services\MechanicService;
 use App\Services\VehicleService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -30,10 +30,8 @@ final class JobController extends Controller
     {
         $this->authorize('viewAny', RepairJob::class);
 
-        $jobs = RepairJob::with(['vehicle', 'mechanics'])->latest()->get();
-
         return Inertia::render('RepairJobs/Index', [
-            'jobs' => $jobs,
+            'jobs' => $this->jobs->listForIndex(),
         ]);
     }
 
@@ -77,13 +75,12 @@ final class JobController extends Controller
         ]);
     }
 
-    public function transition(Request $request, RepairJob $job): RedirectResponse
+    public function transition(TransitionJobRequest $request, RepairJob $job): RedirectResponse
     {
         $this->authorize('update', $job);
 
-        $validated = $request->validate([
-            'state' => ['required', 'string', 'in:' . implode(',', RepairJob::STATES)],
-        ]);
+        /** @var array{state: string} $validated */
+        $validated = $request->validated();
 
         $this->stateMachine->transition($job, $validated['state'], (string) $request->user()->id);
 
