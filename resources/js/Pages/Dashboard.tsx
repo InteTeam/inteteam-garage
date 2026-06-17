@@ -46,7 +46,8 @@ export default function Dashboard({ activeJobs }: Props) {
                         No active jobs. Create one to get started.
                     </div>
                 ) : (
-                    <table className="w-full text-sm">
+                    <div className="overflow-x-auto">
+                    <table className="w-full text-sm min-w-[640px]">
                         <thead className="bg-gray-50 border-b border-gray-200">
                             <tr>
                                 <th className="px-4 py-3 text-left font-medium text-gray-600">Vehicle</th>
@@ -88,6 +89,7 @@ export default function Dashboard({ activeJobs }: Props) {
                             ))}
                         </tbody>
                     </table>
+                    </div>
                 )}
             </div>
         </GarageLayout>

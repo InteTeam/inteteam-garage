@@ -74,7 +74,7 @@ export default function JobShow({ job }: Props) {
                 </Link>
             </div>
 
-            <div className="flex items-start justify-between mb-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-6">
                 <div>
                     <h1 className="text-lg font-semibold text-gray-900">
                         {job.vehicle.registration}
@@ -86,7 +86,7 @@ export default function JobShow({ job }: Props) {
                         <JobStateBadge state={job.state} />
                     </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                     {allowedNext.map((next) => (
                         <Button
                             key={next}
@@ -119,8 +119,8 @@ export default function JobShow({ job }: Props) {
                 </div>
             )}
 
-            <div className="grid grid-cols-3 gap-4">
-                <div className="col-span-2 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-2 space-y-4">
                     <StageNotesEditor jobId={job.id} stages={job.stages} />
                     {job.current_estimate && <EstimatePanel jobId={job.id} estimate={job.current_estimate} />}
                 </div>
