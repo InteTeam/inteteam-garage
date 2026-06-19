@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as BaseResponse;
 
 final class SsoLoginController extends Controller
 {
@@ -83,12 +84,15 @@ final class SsoLoginController extends Controller
         return redirect()->intended(route('dashboard'));
     }
 
-    public function logout(Request $request): RedirectResponse
+    public function logout(Request $request): BaseResponse
     {
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('login');
+        // Inertia::location() forces a full browser navigation; the Inertia <Link method="post">
+        // XHR cannot follow the cross-origin redirect that route('login') triggers (→ SSO).
+        // Landing on `/` (home) skips the OAuth flow so the SSO session does not auto-relogin.
+        return Inertia::location(route('home'));
     }
 }
