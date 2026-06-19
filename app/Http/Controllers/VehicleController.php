@@ -7,6 +7,8 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Vehicle\StoreVehicleRequest;
 use App\Http\Requests\Vehicle\UpdateVehicleRequest;
 use App\Models\Vehicle;
+use App\Services\Dvla\VehicleEnquiryService;
+use App\Services\VehicleComplianceService;
 use App\Services\VehicleService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -16,6 +18,8 @@ final class VehicleController extends Controller
 {
     public function __construct(
         private readonly VehicleService $vehicleService,
+        private readonly VehicleComplianceService $complianceService,
+        private readonly VehicleEnquiryService $dvlaService,
     ) {}
 
     public function index(): Response
@@ -52,6 +56,9 @@ final class VehicleController extends Controller
 
         return Inertia::render('Vehicles/Show', [
             'vehicle' => $vehicle,
+            'compliance' => $this->complianceService->currentForVehicle($vehicle),
+            'complianceHistory' => $this->complianceService->historyForVehicle($vehicle),
+            'dvlaEnabled' => $this->dvlaService->isConfigured(),
         ]);
     }
 

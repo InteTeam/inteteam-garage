@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $garage_id
  * @property string $crm_customer_id
  * @property string $registration
+ * @property string|null $vin
  * @property string $make
  * @property string $model
  * @property int|null $year
@@ -36,6 +37,7 @@ final class Vehicle extends Model
         'garage_id',
         'crm_customer_id',
         'registration',
+        'vin',
         'make',
         'model',
         'year',
@@ -57,5 +59,10 @@ final class Vehicle extends Model
     public function repairJobs(): HasMany
     {
         return $this->hasMany(RepairJob::class);
+    }
+
+    public function complianceRecords(): HasMany
+    {
+        return $this->hasMany(ComplianceRecord::class);
     }
 }

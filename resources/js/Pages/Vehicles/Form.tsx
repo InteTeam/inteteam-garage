@@ -7,6 +7,7 @@ interface Vehicle {
     id: string;
     crm_customer_id: string;
     registration: string;
+    vin: string | null;
     make: string;
     model: string;
     year: string;
@@ -29,6 +30,7 @@ export default function VehicleForm({ vehicle, returningCustomerIds = [] }: Prop
     const { data, setData, post, put, processing, errors } = useForm({
         crm_customer_id: vehicle?.crm_customer_id ?? '',
         registration: vehicle?.registration ?? '',
+        vin: vehicle?.vin ?? '',
         make: vehicle?.make ?? '',
         model: vehicle?.model ?? '',
         year: vehicle?.year ?? '',
@@ -85,6 +87,19 @@ export default function VehicleForm({ vehicle, returningCustomerIds = [] }: Prop
                             {errors[f] && <p className={err}>{errors[f]}</p>}
                         </div>
                     ))}
+                    <div>
+                        <label htmlFor="vin" className={label}>VIN</label>
+                        <input
+                            id="vin"
+                            type="text"
+                            className={field}
+                            value={data.vin}
+                            onChange={(e) => setData('vin', e.target.value.toUpperCase())}
+                            maxLength={17}
+                        />
+                        <p className={hint}>Optional. Up to 17 characters.</p>
+                        {errors.vin && <p className={err}>{errors.vin}</p>}
+                    </div>
                     <div>
                         <label htmlFor="year" className={label}>
                             Year <span className="text-red-500">*</span>

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Auth\SsoLoginController;
+use App\Http\Controllers\ComplianceRecordController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EstimateController;
 use App\Http\Controllers\EstimateLifecycleController;
@@ -48,6 +49,10 @@ Route::middleware(['auth', 'garage'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::resource('vehicles', VehicleController::class);
+    Route::post('/vehicles/{vehicle}/compliance', [ComplianceRecordController::class, 'store'])
+        ->name('vehicles.compliance.store');
+    Route::post('/vehicles/{vehicle}/compliance/refresh', [ComplianceRecordController::class, 'refresh'])
+        ->name('vehicles.compliance.refresh');
     Route::resource('mechanics', MechanicController::class);
 
     Route::prefix('jobs')->name('jobs.')->group(function () {

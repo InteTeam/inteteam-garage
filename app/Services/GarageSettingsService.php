@@ -15,6 +15,9 @@ final class GarageSettingsService
         'online_payment_enabled' => ApprovalEvent::EVENT_PREFERENCE_CHANGED,
         'staff_channel_toggle_default' => ApprovalEvent::EVENT_STAFF_TOGGLE_LOCK_CHANGED,
         'timeout_reminder_policy' => ApprovalEvent::EVENT_TIMEOUT_POLICY_CHANGED,
+        'compliance_reminders_enabled' => ApprovalEvent::EVENT_PREFERENCE_CHANGED,
+        'compliance_reminders_channel' => ApprovalEvent::EVENT_PREFERENCE_CHANGED,
+        'compliance_reminders_recipient' => ApprovalEvent::EVENT_PREFERENCE_CHANGED,
     ];
 
     public function __construct(
@@ -26,6 +29,9 @@ final class GarageSettingsService
      */
     public function update(Garage $garage, array $data, string $actorId): Garage
     {
+        // Refresh from DB so column defaults (e.g. compliance_reminders_recipient='customer')
+        // are present in memory — otherwise diff() sees null→default as a spurious change.
+        $garage->refresh();
         $before = $this->snapshot($garage);
 
         DB::transaction(function () use ($garage, $data, $before, $actorId): void {
@@ -75,6 +81,9 @@ final class GarageSettingsService
             'online_payment_enabled' => (bool) $garage->online_payment_enabled,
             'staff_channel_toggle_default' => (bool) $garage->staff_channel_toggle_default,
             'timeout_reminder_policy' => (string) $garage->timeout_reminder_policy,
+            'compliance_reminders_enabled' => (bool) $garage->compliance_reminders_enabled,
+            'compliance_reminders_channel' => $garage->compliance_reminders_channel,
+            'compliance_reminders_recipient' => (string) $garage->compliance_reminders_recipient,
         ];
     }
 

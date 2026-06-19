@@ -31,6 +31,7 @@ final class UpdateVehicleRequest extends FormRequest
                 $this->crmCustomerExistsRule(),
             ],
             'registration' => ['sometimes', 'string', 'max:255'],
+            'vin' => ['sometimes', 'nullable', 'string', 'max:17'],
             'make' => ['sometimes', 'string', 'max:255'],
             'model' => ['sometimes', 'string', 'max:255'],
             'year' => ['sometimes', 'integer', "between:1900,{$nextYear}"],

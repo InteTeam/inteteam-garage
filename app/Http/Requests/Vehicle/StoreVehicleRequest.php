@@ -31,6 +31,7 @@ final class StoreVehicleRequest extends FormRequest
                 $this->crmCustomerExistsRule(),
             ],
             'registration' => ['required', 'string', 'max:255'],
+            'vin' => ['nullable', 'string', 'max:17'],
             'make' => ['required', 'string', 'max:255'],
             'model' => ['required', 'string', 'max:255'],
             'year' => ['required', 'integer', "between:1900,{$nextYear}"],

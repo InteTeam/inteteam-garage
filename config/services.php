@@ -60,4 +60,12 @@ return [
         'client_secret' => env('SSO_CLIENT_SECRET'),
     ],
 
+    'dvla' => [
+        // DVLA Vehicle Enquiry Service (VES) — returns MOT + Tax expiry plus vehicle metadata.
+        // Register at https://register-for-the-vehicle-enquiry-service-vehicle-checker-api.service.gov.uk/
+        'ves_url' => env('DVLA_VES_URL', 'https://driver-vehicle-licensing.api.gov.uk/vehicle-enquiry/v1/vehicles'),
+        'ves_api_key' => env('DVLA_VES_API_KEY'),
+        'ves_timeout' => (int) env('DVLA_VES_TIMEOUT', 10),
+    ],
+
 ];

@@ -22,6 +22,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $timeout_reminder_policy
  * @property array<string, mixed>|null $working_hours
  * @property string $locale
+ * @property bool $compliance_reminders_enabled
+ * @property string|null $compliance_reminders_channel
+ * @property array<int, int>|null $compliance_reminders_windows
+ * @property string $compliance_reminders_recipient
+ * @property array<int, string>|null $compliance_reminders_types
  */
 #[UsePolicy(GaragePolicy::class)]
 final class Garage extends Model
@@ -54,6 +59,11 @@ final class Garage extends Model
         self::TIMEOUT_POLICY_ON_CALL,
     ];
 
+    /** Default windows (days before expiry) if garage enables reminders without picking any. */
+    public const DEFAULT_REMINDER_WINDOWS = [30, 7];
+
+    public const DEFAULT_REMINDER_TYPES = ['mot', 'tax', 'insurance'];
+
     protected $fillable = [
         'name',
         'slug',
@@ -63,6 +73,11 @@ final class Garage extends Model
         'timeout_reminder_policy',
         'working_hours',
         'locale',
+        'compliance_reminders_enabled',
+        'compliance_reminders_channel',
+        'compliance_reminders_windows',
+        'compliance_reminders_recipient',
+        'compliance_reminders_types',
     ];
 
     protected function casts(): array
@@ -71,6 +86,9 @@ final class Garage extends Model
             'online_payment_enabled' => 'boolean',
             'staff_channel_toggle_default' => 'boolean',
             'working_hours' => 'array',
+            'compliance_reminders_enabled' => 'boolean',
+            'compliance_reminders_windows' => 'array',
+            'compliance_reminders_types' => 'array',
         ];
     }
 
