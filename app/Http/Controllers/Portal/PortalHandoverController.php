@@ -24,7 +24,7 @@ final class PortalHandoverController extends Controller
         /** @var RepairJob $job */
         $job = $request->attributes->get('portal_job');
 
-        $job->load(['currentEstimate.lineItems', 'handoverInspection.items']);
+        $job->load(['garage', 'currentEstimate.lineItems', 'handoverInspection.items']);
 
         return Inertia::render('Portal/Handover', [
             'job' => $job,

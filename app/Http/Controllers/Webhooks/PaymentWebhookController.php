@@ -33,11 +33,16 @@ final class PaymentWebhookController extends Controller
 
         $job = RepairJob::withoutGlobalScopes()->findOrFail($validated['job_id']);
 
-        $this->paymentService->confirmPayment($job, $validated['payment_reference']);
+        $firstConfirm = $this->paymentService->confirmPayment($job, $validated['payment_reference']);
 
-        $job->load('mechanics.user');
-        foreach ($job->mechanics as $mechanic) {
-            $this->staffNotifications->notifyPaymentConfirmedToMechanic($job, $mechanic);
+        // Only fan out staff notifications when this call was the first to
+        // confirm — otherwise a CRM webhook retry would re-notify mechanics
+        // and append duplicate EVENT_STAFF_NOTIFICATION_DISPATCHED audit rows.
+        if ($firstConfirm) {
+            $job->load('mechanics.user');
+            foreach ($job->mechanics as $mechanic) {
+                $this->staffNotifications->notifyPaymentConfirmedToMechanic($job, $mechanic);
+            }
         }
 
         return response()->noContent();

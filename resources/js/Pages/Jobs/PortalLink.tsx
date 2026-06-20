@@ -20,7 +20,7 @@ interface Props {
 
 export default function PortalLink({ job, portalUrl, token }: Props) {
     function handleRegenerate() {
-        router.post(`/jobs/${job.id}/portal/regenerate`);
+        router.post(`/jobs/${job.id}/portal-link/regenerate`);
     }
 
     function handleCopy() {

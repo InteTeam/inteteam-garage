@@ -19,6 +19,7 @@ final class PortalJobController extends Controller
 
         $job->load([
             'vehicle',
+            'garage',
             'currentEstimate.lineItems',
             'stateTransitions',
             'approvalEvents',
@@ -36,7 +37,7 @@ final class PortalJobController extends Controller
         /** @var RepairJob $job */
         $job = $request->attributes->get('portal_job');
 
-        $job->load(['stateTransitions', 'approvalEvents', 'stages.media']);
+        $job->load(['garage', 'stateTransitions', 'approvalEvents', 'stages.media']);
 
         return Inertia::render('Portal/Timeline', [
             'job' => $job,

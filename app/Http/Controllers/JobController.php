@@ -63,7 +63,7 @@ final class JobController extends Controller
 
         $job->load([
             'vehicle',
-            'mechanics',
+            'mechanics.user',
             'currentEstimate.lineItems',
             'stages',
             'stateTransitions',

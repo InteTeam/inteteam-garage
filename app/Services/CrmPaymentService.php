@@ -9,6 +9,7 @@ use App\Models\Estimate;
 use App\Models\LineItem;
 use App\Models\RepairJob;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Log;
 
 final class CrmPaymentService
 {
@@ -58,12 +59,32 @@ final class CrmPaymentService
         return $reference;
     }
 
-    public function confirmPayment(RepairJob $job, string $reference): void
+    /**
+     * Returns true when this call actually confirmed the payment; false when
+     * the job was already confirmed (idempotent no-op for CRM webhook retries).
+     *
+     * The append-only audit log is the product thesis — duplicate
+     * `EVENT_PAYMENT_CONFIRMED` rows (or duplicate staff notifications) on a
+     * retried webhook would break that contract.
+     */
+    public function confirmPayment(RepairJob $job, string $reference): bool
     {
+        if ($job->payment_confirmed_at !== null) {
+            Log::info('payment_confirmed webhook ignored — already confirmed', [
+                'job_id' => $job->id,
+                'reference' => $reference,
+                'confirmed_at' => $job->payment_confirmed_at->toIso8601String(),
+            ]);
+
+            return false;
+        }
+
         $job->update(['payment_confirmed_at' => now()]);
 
         $this->approvalEventService->recordBySystem($job, ApprovalEvent::EVENT_PAYMENT_CONFIRMED, [
             'reference' => $reference,
         ]);
+
+        return true;
     }
 }

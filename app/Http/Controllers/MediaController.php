@@ -19,6 +19,7 @@ final class MediaController extends Controller
     public function store(Request $request, RepairJob $job, JobStage $stage): JsonResponse
     {
         $this->authorize('update', $job);
+        $this->ensureStageBelongsToJob($stage, $job);
 
         $request->validate([
             'file' => ['required', 'file', 'max:20480', 'mimes:jpg,jpeg,png,webp,mp4,mov'],
@@ -41,5 +42,10 @@ final class MediaController extends Controller
             'mime_type' => $media->mime_type,
             'original_filename' => $media->original_filename,
         ], 201);
+    }
+
+    private function ensureStageBelongsToJob(JobStage $stage, RepairJob $job): void
+    {
+        abort_if($stage->job_id !== $job->id, 404, 'Stage does not belong to this job.');
     }
 }

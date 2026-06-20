@@ -36,6 +36,12 @@ final class ScopeChangeService
         }
 
         return DB::transaction(function () use ($job, $lineItems, $actorId): Estimate {
+            // Lock the parent job row so two concurrent scope-change POSTs cannot
+            // both compute the same `max + 1` revision number and double-insert.
+            // Mirrors EstimateService::createForJob — there is no DB-level
+            // UNIQUE(job_id, revision_number), so the lock IS the guarantee.
+            RepairJob::query()->whereKey($job->id)->lockForUpdate()->first();
+
             $nextRevision = ((int) $job->estimates()->max('revision_number')) + 1;
 
             /** @var Estimate $estimate */
