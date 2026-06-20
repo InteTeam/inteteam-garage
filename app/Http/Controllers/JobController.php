@@ -15,6 +15,7 @@ use App\Services\VehicleService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
 
 final class JobController extends Controller
 {
@@ -82,7 +83,16 @@ final class JobController extends Controller
         /** @var array{state: string} $validated */
         $validated = $request->validated();
 
-        $this->stateMachine->transition($job, $validated['state'], (string) $request->user()->id);
+        try {
+            $this->stateMachine->transition($job, $validated['state'], (string) $request->user()->id);
+        } catch (RuntimeException $e) {
+            // planning.md L99/L101/L103 — JobStateMachine guards (no line items
+            // on send, unresolved items on complete, missing handover/payment
+            // on collect) are Poka-Yoke design choices. Surface as a session
+            // error so the mechanic sees the reason inline, not a 500. Mirrors
+            // EstimateController::update.
+            return back()->withErrors(['transition' => $e->getMessage()]);
+        }
 
         if ($validated['state'] === RepairJob::STATE_AWAITING_COLLECTION) {
             $this->notifications->notifyHandoverReady($job->fresh());

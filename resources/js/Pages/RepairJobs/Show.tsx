@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import GarageLayout from '@/Layouts/GarageLayout';
 import { JobStateBadge } from '@/Components/JobStateBadge';
 import { StageNotesEditor, JobStage } from '@/Components/StageNotesEditor';
@@ -54,10 +54,28 @@ interface Props {
 }
 
 export default function JobShow({ job }: Props) {
+    const { errors } = usePage<{ errors: Record<string, string> }>().props;
     const allowedNext = VALID_TRANSITIONS[job.state] ?? [];
     const flaggedHandoverItems = job.handover_inspection?.items.filter(
         (item) => !item.accepted || (item.notes !== null && item.notes.trim() !== ''),
     ) ?? [];
+
+    // Poka-Yoke mirror of JobStateMachine guards (planning.md L99/L101/L103).
+    // Backend remains authoritative; this just stops the mechanic from clicking
+    // a button that will guaranteed-fail and surfaces *why* before they try.
+    function guardReason(next: string): string | null {
+        const lineItems = job.current_estimate?.line_items ?? [];
+        if (next === 'awaiting_approval' && lineItems.length === 0) {
+            return 'Add at least one line item to the estimate first.';
+        }
+        if (next === 'completed' && (lineItems.length === 0 || lineItems.some((i) => i.status === 'pending'))) {
+            return 'All line items must be approved or declined first.';
+        }
+        if (next === 'collected' && job.handover_inspection === null) {
+            return 'The customer has not submitted the handover inspection yet.';
+        }
+        return null;
+    }
 
     function transition(toState: string) {
         router.post(`/jobs/${job.id}/transition`, { state: toState });
@@ -87,19 +105,30 @@ export default function JobShow({ job }: Props) {
                     </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                    {allowedNext.map((next) => (
-                        <Button
-                            key={next}
-                            size="sm"
-                            variant={next === 'collected' ? 'success' : next === 'scope_change' ? 'outline' : 'default'}
-                            onClick={() => transition(next)}
-                        >
-                            <ChevronRight className="h-3.5 w-3.5" />
-                            {STATE_LABELS[next] ?? next}
-                        </Button>
-                    ))}
+                    {allowedNext.map((next) => {
+                        const blockedReason = guardReason(next);
+                        return (
+                            <Button
+                                key={next}
+                                size="sm"
+                                variant={next === 'collected' ? 'success' : next === 'scope_change' ? 'outline' : 'default'}
+                                onClick={() => transition(next)}
+                                disabled={blockedReason !== null}
+                                title={blockedReason ?? undefined}
+                            >
+                                <ChevronRight className="h-3.5 w-3.5" />
+                                {STATE_LABELS[next] ?? next}
+                            </Button>
+                        );
+                    })}
                 </div>
             </div>
+
+            {errors.transition && (
+                <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                    {errors.transition}
+                </div>
+            )}
 
             {job.handover_inspection && flaggedHandoverItems.length > 0 && (
                 <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
