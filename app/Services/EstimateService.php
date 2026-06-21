@@ -63,6 +63,37 @@ final class EstimateService
         $estimate->delete();
     }
 
+    /**
+     * Add a mechanic-authored line item to an estimate. The estimate seals at
+     * two points: when sent_at is stamped (customer may be mid-read in the
+     * portal), and when any item is approved/declined. After either, the
+     * mechanic must raise a scope change for a new revision (planning.md L175).
+     */
+    public function addLineItem(Estimate $estimate, string $description, float $price): LineItem
+    {
+        if ($estimate->sent_at !== null) {
+            throw new RuntimeException(
+                'Cannot add a line item to a sent estimate. '
+                . 'Raise a scope change to create a new revision instead.'
+            );
+        }
+
+        if ($estimate->hasCustomerResponse()) {
+            throw new RuntimeException(
+                'Cannot add a line item to an estimate the customer has already responded to. '
+                . 'Raise a scope change to create a new revision instead.'
+            );
+        }
+
+        return LineItem::create([
+            'garage_id' => $estimate->garage_id,
+            'estimate_id' => $estimate->id,
+            'description' => $description,
+            'price' => $price,
+            'status' => LineItem::STATUS_PENDING,
+        ]);
+    }
+
     public function markSent(
         RepairJob $job,
         Estimate $estimate,

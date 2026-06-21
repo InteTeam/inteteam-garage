@@ -8,7 +8,8 @@ import { useState } from 'react';
 interface LineItem {
     id: string;
     description: string;
-    price: number;
+    // Laravel's `decimal:2` cast serialises as a string ("324.00").
+    price: number | string;
     status: 'pending' | 'approved' | 'declined';
 }
 
@@ -50,7 +51,7 @@ export default function PortalJob({ job, token }: Props) {
 
     const isPending = job.state === 'awaiting_approval';
     const lineItems = job.current_estimate?.line_items ?? [];
-    const total = lineItems.reduce((sum, i) => sum + i.price, 0);
+    const total = lineItems.reduce((sum, i) => sum + Number(i.price), 0);
 
     return (
         <PortalLayout title="Your Repair Job" garageName={job.garage.name}>
@@ -74,7 +75,7 @@ export default function PortalJob({ job, token }: Props) {
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="flex-1">
                                         <p className="text-sm font-medium text-gray-900">{item.description}</p>
-                                        <p className="text-sm text-gray-500">£{item.price.toFixed(2)}</p>
+                                        <p className="text-sm text-gray-500">£{Number(item.price).toFixed(2)}</p>
                                     </div>
                                     {item.status !== 'pending' ? (
                                         <span className={`text-xs font-semibold px-2 py-1 rounded-full ${

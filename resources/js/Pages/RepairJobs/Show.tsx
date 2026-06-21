@@ -51,9 +51,10 @@ interface Job {
 
 interface Props {
     job: Job;
+    stagesAvailableToAdd: string[];
 }
 
-export default function JobShow({ job }: Props) {
+export default function JobShow({ job, stagesAvailableToAdd }: Props) {
     const { errors } = usePage<{ errors: Record<string, string> }>().props;
     const allowedNext = VALID_TRANSITIONS[job.state] ?? [];
     const flaggedHandoverItems = job.handover_inspection?.items.filter(
@@ -150,8 +151,27 @@ export default function JobShow({ job }: Props) {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-2 space-y-4">
-                    <StageNotesEditor jobId={job.id} stages={job.stages} />
-                    {job.current_estimate && <EstimatePanel jobId={job.id} estimate={job.current_estimate} />}
+                    <StageNotesEditor
+                        jobId={job.id}
+                        stages={job.stages}
+                        availableToAdd={stagesAvailableToAdd}
+                    />
+                    {job.current_estimate ? (
+                        <EstimatePanel jobId={job.id} estimate={job.current_estimate} />
+                    ) : (
+                        <div className="bg-white rounded-lg border border-gray-200 p-4 flex items-center justify-between">
+                            <div>
+                                <h2 className="font-medium text-gray-900 text-sm">No estimate yet</h2>
+                                <p className="text-xs text-gray-500 mt-0.5">Create one to start adding line items for the customer.</p>
+                            </div>
+                            <Button
+                                size="sm"
+                                onClick={() => router.post(`/jobs/${job.id}/estimates`)}
+                            >
+                                Create Estimate
+                            </Button>
+                        </div>
+                    )}
                 </div>
                 <JobSidebar
                     jobId={job.id}

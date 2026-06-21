@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/react';
 import { Button } from '@/Components/ui/button';
-import { Languages, Lock } from 'lucide-react';
-import { FormEvent, useState } from 'react';
+import { Languages, Lock, Plus } from 'lucide-react';
+import { FormEvent, useEffect, useState } from 'react';
 
 export interface JobStage {
     id: string;
@@ -17,14 +17,23 @@ export interface JobStage {
 interface Props {
     jobId: string;
     stages: JobStage[];
+    // Canonical names of stages not yet defined on the job — derived from
+    // JobStage::STAGES server-side so the frontend has no duplicate of the
+    // enum (audit 7 F3).
+    availableToAdd: string[];
 }
 
-export function StageNotesEditor({ jobId, stages }: Props) {
+export function StageNotesEditor({ jobId, stages, availableToAdd }: Props) {
     return (
         <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <h2 className="font-medium text-gray-900 text-sm mb-3">Stage Notes</h2>
+            <div className="flex items-center justify-between mb-3">
+                <h2 className="font-medium text-gray-900 text-sm">Stage Notes</h2>
+                {availableToAdd.length > 0 && (
+                    <AddStageControl jobId={jobId} availableToAdd={availableToAdd} />
+                )}
+            </div>
             {stages.length === 0 ? (
-                <p className="text-sm text-gray-400">No stages defined for this job.</p>
+                <p className="text-sm text-gray-400">No stages defined yet — add one to start logging notes.</p>
             ) : (
                 <ul className="space-y-4">
                     {stages.map((stage) => (
@@ -34,6 +43,47 @@ export function StageNotesEditor({ jobId, stages }: Props) {
                     ))}
                 </ul>
             )}
+        </div>
+    );
+}
+
+function AddStageControl({ jobId, availableToAdd }: { jobId: string; availableToAdd: string[] }) {
+    const [adding, setAdding] = useState(false);
+    const [pick, setPick] = useState<string>(availableToAdd[0]);
+
+    // Keep the local selection inside availableToAdd whenever the parent
+    // shrinks the list (e.g. after a successful add).
+    useEffect(() => {
+        if (!availableToAdd.includes(pick)) {
+            setPick(availableToAdd[0]);
+        }
+    }, [availableToAdd, pick]);
+
+    function submit() {
+        setAdding(true);
+        router.post(
+            `/jobs/${jobId}/stages`,
+            { name: pick },
+            { preserveScroll: true, onFinish: () => setAdding(false) },
+        );
+    }
+
+    return (
+        <div className="flex items-center gap-2">
+            <select
+                value={pick}
+                onChange={(e) => setPick(e.target.value)}
+                className="text-xs border border-gray-300 rounded-md px-2 py-1 bg-white"
+                disabled={adding}
+            >
+                {availableToAdd.map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                ))}
+            </select>
+            <Button size="sm" variant="outline" onClick={submit} disabled={adding}>
+                <Plus className="h-3.5 w-3.5" />
+                Add stage
+            </Button>
         </div>
     );
 }

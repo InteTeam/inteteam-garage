@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\RepairJob\StoreJobRequest;
 use App\Http\Requests\RepairJob\TransitionJobRequest;
+use App\Models\JobStage;
 use App\Models\RepairJob;
 use App\Services\CrmNotificationService;
 use App\Services\JobService;
@@ -71,8 +72,12 @@ final class JobController extends Controller
             'handoverInspection.items.lineItem',
         ]);
 
+        $definedStageNames = $job->stages->pluck('name')->all();
+        $stagesAvailableToAdd = array_values(array_diff(JobStage::STAGES, $definedStageNames));
+
         return Inertia::render('RepairJobs/Show', [
             'job' => $job,
+            'stagesAvailableToAdd' => $stagesAvailableToAdd,
         ]);
     }
 

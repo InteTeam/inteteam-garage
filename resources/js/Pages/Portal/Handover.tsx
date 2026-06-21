@@ -3,7 +3,8 @@ import PortalLayout from '@/Layouts/PortalLayout';
 import { Button } from '@/Components/ui/button';
 import { useState } from 'react';
 
-interface LineItem { id: string; description: string; price: number }
+// Laravel's `decimal:2` cast serialises price as a string ("324.00").
+interface LineItem { id: string; description: string; price: number | string }
 interface Estimate { line_items: LineItem[] }
 interface HandoverInspection { submitted_at: string }
 interface Job {
@@ -63,7 +64,7 @@ export default function PortalHandover({ job, token }: Props) {
                             <div className="flex items-start justify-between gap-4">
                                 <div>
                                     <p className="text-sm font-medium text-gray-900">{item.description}</p>
-                                    <p className="text-xs text-gray-500">£{item.price.toFixed(2)}</p>
+                                    <p className="text-xs text-gray-500">£{Number(item.price).toFixed(2)}</p>
                                 </div>
                                 <div className="flex gap-3 shrink-0">
                                     <label className="flex items-center gap-1.5 text-sm cursor-pointer">

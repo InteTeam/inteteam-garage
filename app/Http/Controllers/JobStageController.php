@@ -35,8 +35,12 @@ final class JobStageController extends Controller
     {
         $this->authorize('update', $job);
 
+        $validated = $request->validated();
+        $sortOrder = array_search($validated['name'], JobStage::STAGES, true);
+
         $this->jobStageService->create([
-            ...$request->validated(),
+            ...$validated,
+            'sort_order' => $sortOrder,
             'job_id' => $job->id,
         ]);
 

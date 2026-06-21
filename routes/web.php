@@ -13,6 +13,7 @@ use App\Http\Controllers\JobController;
 use App\Http\Controllers\JobMechanicController;
 use App\Http\Controllers\JobNotificationPreferenceController;
 use App\Http\Controllers\JobStageController;
+use App\Http\Controllers\LineItemController;
 use App\Http\Controllers\LineItemResponseController;
 use App\Http\Controllers\MechanicController;
 use App\Http\Controllers\MediaController;
@@ -74,6 +75,7 @@ Route::middleware(['auth', 'garage'])->group(function () {
         Route::post('/{job}/estimates/{estimate}/send', [EstimateLifecycleController::class, 'send'])->name('estimates.send');
         Route::post('/{job}/estimates/{estimate}/preview-translation', [EstimateLifecycleController::class, 'previewTranslation'])->name('estimates.preview-translation');
         Route::post('/{job}/estimates/{estimate}/confirm-translation', [EstimateLifecycleController::class, 'confirmTranslation'])->name('estimates.confirm-translation');
+        Route::post('/{job}/estimates/{estimate}/line-items', [LineItemController::class, 'store'])->name('estimates.line-items.store');
         Route::post('/{job}/mechanics/assign', [JobMechanicController::class, 'sync'])->name('mechanics.sync');
         Route::put('/{job}/notification-preference', [JobNotificationPreferenceController::class, 'update'])->name('notification-preference.update');
         Route::post('/{job}/scope-change', [ScopeChangeController::class, 'store'])->name('scope-change.store');

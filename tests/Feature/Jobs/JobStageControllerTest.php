@@ -33,6 +33,9 @@ final class JobStageControllerTest extends TestCase
 
     public function test_store_persists_stage_under_job_from_route(): void
     {
+        // Audit 7 / F2 — `sort_order` is derived server-side from
+        // JobStage::STAGES index, so a client-supplied value is ignored.
+        // pre-inspection lives at index 0 by canonical convention.
         [$garage, $user] = $this->makeGarageWithAdmin();
         $job = $this->makeJob($garage);
 
@@ -40,7 +43,7 @@ final class JobStageControllerTest extends TestCase
             ->withSession(['current_garage_id' => $garage->id])
             ->post(route('jobs.stages.store', $job->id), [
                 'name' => JobStage::STAGE_PRE_INSPECTION,
-                'sort_order' => 1,
+                'sort_order' => 999,
                 'locked_at' => now()->toIso8601String(),
             ])
             ->assertRedirect();
@@ -49,7 +52,7 @@ final class JobStageControllerTest extends TestCase
             'job_id' => $job->id,
             'garage_id' => $garage->id,
             'name' => JobStage::STAGE_PRE_INSPECTION,
-            'sort_order' => 1,
+            'sort_order' => array_search(JobStage::STAGE_PRE_INSPECTION, JobStage::STAGES, true),
         ]);
     }
 

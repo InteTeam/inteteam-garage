@@ -5,7 +5,8 @@ export interface PreviewLineItem {
     original: string;
     translated: string;
     translated_by_ai: boolean;
-    price: number;
+    // Laravel's `decimal:2` cast serialises as a string ("324.00").
+    price: number | string;
 }
 
 interface Props {
@@ -26,7 +27,7 @@ export function TranslationPreviewRow({
             <div>
                 <p className="text-xs font-medium text-gray-500 mb-1">Original ({fromLocale})</p>
                 <p className="text-sm text-gray-800">{item.original}</p>
-                <p className="text-xs text-gray-500 mt-1">£{item.price.toFixed(2)}</p>
+                <p className="text-xs text-gray-500 mt-1">£{Number(item.price).toFixed(2)}</p>
             </div>
             <div>
                 <div className="flex items-center justify-between mb-1">

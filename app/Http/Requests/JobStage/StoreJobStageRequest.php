@@ -16,13 +16,16 @@ final class StoreJobStageRequest extends FormRequest
     }
 
     /**
+     * sort_order is intentionally NOT accepted from the client — it is
+     * derived server-side from JobStage::STAGES so the canonical order
+     * cannot be tampered with by a hand-crafted POST.
+     *
      * @return array<string, array<int, mixed>>
      */
     public function rules(): array
     {
         return [
             'name' => ['required', Rule::in(JobStage::STAGES)],
-            'sort_order' => ['required', 'integer'],
             'locked_at' => ['nullable', 'date'],
         ];
     }
