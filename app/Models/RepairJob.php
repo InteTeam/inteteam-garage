@@ -25,6 +25,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $state
  * @property string|null $payment_reference
  * @property Carbon|null $payment_confirmed_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
  * @property-read Garage $garage
  * @property-read Vehicle $vehicle
  * @property-read Estimate|null $currentEstimate

@@ -47,7 +47,7 @@ final class CustomerSsoLoginController extends Controller
         $code = $request->query('code');
 
         if (! is_string($code) || $code === '') {
-            return redirect()->route('customer.login')->withErrors(['sso' => 'Authentication failed.']);
+            return redirect()->route('home')->withErrors(['sso' => 'Authentication failed.']);
         }
 
         $response = Http::post(config('services.sso.url') . '/oauth/token', [
@@ -59,7 +59,7 @@ final class CustomerSsoLoginController extends Controller
         ]);
 
         if ($response->failed()) {
-            return redirect()->route('customer.login')->withErrors(['sso' => 'Authentication failed.']);
+            return redirect()->route('home')->withErrors(['sso' => 'Authentication failed.']);
         }
 
         $tokenData = $response->json();
@@ -68,7 +68,7 @@ final class CustomerSsoLoginController extends Controller
             ->get(config('services.sso.url') . '/oauth/userinfo');
 
         if ($userResponse->failed()) {
-            return redirect()->route('customer.login')->withErrors(['sso' => 'Could not retrieve user.']);
+            return redirect()->route('home')->withErrors(['sso' => 'Could not retrieve user.']);
         }
 
         $ssoUser = $userResponse->json();
@@ -76,7 +76,7 @@ final class CustomerSsoLoginController extends Controller
         $name = (string) ($ssoUser['name'] ?? '');
 
         if ($email === '') {
-            return redirect()->route('customer.login')->withErrors(['sso' => 'SSO response missing email.']);
+            return redirect()->route('home')->withErrors(['sso' => 'SSO response missing email.']);
         }
 
         // Try to resolve the CRM customer record by email. If CRM doesn't know
@@ -113,8 +113,11 @@ final class CustomerSsoLoginController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        // Mirror SsoLoginController::logout — land on home, not on the SSO
-        // login flow, so the SSO session does not auto-relogin the same user.
-        return Inertia::location(route('home'));
+        // Clear SSO session too — otherwise clicking any login button right
+        // after sign-out auto-passes the same user back through. SSO logout
+        // bounces back to home via redirect_to.
+        $ssoLogoutUrl = config('services.sso.public_url') . '/logout?redirect_to=' . urlencode(route('home'));
+
+        return Inertia::location($ssoLogoutUrl);
     }
 }

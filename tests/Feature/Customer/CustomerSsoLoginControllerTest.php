@@ -96,15 +96,42 @@ final class CustomerSsoLoginControllerTest extends TestCase
         ]);
 
         $this->get(route('customer.callback', ['code' => 'bad']))
-            ->assertRedirect(route('customer.login'))
+            ->assertRedirect(route('home'))
             ->assertSessionHasErrors('sso');
     }
 
     public function test_callback_rejects_missing_code(): void
     {
         $this->get(route('customer.callback'))
-            ->assertRedirect(route('customer.login'))
+            ->assertRedirect(route('home'))
             ->assertSessionHasErrors('sso');
+    }
+
+    public function test_callback_session_persists_through_to_dashboard(): void
+    {
+        // N1 from playbook audit: every other test uses actingAs(), which
+        // bypasses the session driver. The four bugs surfaced in playbook 8
+        // (remember_token, sessions.user_id bigint, Home.tsx link drift,
+        // redirectGuestsTo target) only fire on the real cookie path:
+        // callback → login() → DB write → redirect → re-read cookie. Lock
+        // that path with one explicit test.
+        Http::fake([
+            'https://sso.test/oauth/token' => Http::response(['access_token' => 'tok'], 200),
+            'https://sso.test/oauth/userinfo' => Http::response([
+                'email' => 'session@example.com',
+                'name' => 'Session User',
+            ], 200),
+            '*/api/v1/internal/customers?*' => Http::response([
+                'data' => ['id' => 'crm-session', 'name' => 'Session U.'],
+            ], 200),
+        ]);
+
+        $this->get(route('customer.callback', ['code' => 'authcode']))
+            ->assertRedirect(route('customer.dashboard'));
+
+        // Same TestCase instance, same session — if the customer guard fails
+        // to persist, this hop redirects to customer.login and fails.
+        $this->get(route('customer.dashboard'))->assertOk();
     }
 
     public function test_logout_invalidates_session(): void

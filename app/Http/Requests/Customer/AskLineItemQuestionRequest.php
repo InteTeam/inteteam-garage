@@ -19,7 +19,7 @@ final class AskLineItemQuestionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'notes' => ['required', 'string', 'max:2000'],
+            'message' => ['required', 'string', 'max:2000'],
         ];
     }
 }

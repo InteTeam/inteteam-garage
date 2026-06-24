@@ -23,7 +23,6 @@ interface Estimate {
 interface Stage {
     id: string;
     name: string;
-    state: string;
     notes: string | null;
     media: Array<{ id: string; url: string | null; mime_type: string }>;
 }
@@ -70,9 +69,10 @@ export default function CustomerJobShow({ job }: Props) {
 
     function question(lineItemId: string) {
         if (!note.trim()) return;
+        // Field is `message` (signed-portal parity); `notes` is for decline only.
         router.post(
             `/account/jobs/${job.id}/line-items/${lineItemId}/question`,
-            { notes: note },
+            { message: note },
             { onSuccess: () => { setQuestioning(null); setNote(''); } },
         );
     }
@@ -185,8 +185,7 @@ export default function CustomerJobShow({ job }: Props) {
                         {job.stages.map((stage) => (
                             <li key={stage.id} className="border-l-2 border-gray-200 pl-4 py-1">
                                 <div className="flex items-center gap-2">
-                                    <span className="font-medium text-gray-900 text-sm">{stage.name}</span>
-                                    <span className="text-xs text-gray-500 capitalize">{stage.state.replace(/_/g, ' ')}</span>
+                                    <span className="font-medium text-gray-900 text-sm capitalize">{stage.name.replace(/-/g, ' ')}</span>
                                 </div>
                                 {stage.notes && <p className="text-xs text-gray-600 mt-1">{stage.notes}</p>}
                                 {stage.media.length > 0 && (

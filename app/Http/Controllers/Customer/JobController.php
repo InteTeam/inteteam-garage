@@ -6,14 +6,21 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\JobStage;
+use App\Models\Media;
 use App\Models\RepairJob;
 use App\Models\Vehicle;
+use App\Services\GcsService;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
 final class JobController extends Controller
 {
+    public function __construct(
+        private readonly GcsService $gcs,
+    ) {}
+
     public function show(string $jobId): Response
     {
         /** @var Customer $customer */
@@ -37,8 +44,33 @@ final class JobController extends Controller
         ]);
 
         return Inertia::render('Account/JobShow', [
-            'job' => $job,
+            'job' => $this->serializeJob($job),
         ]);
+    }
+
+    /**
+     * Build the Inertia payload by hand. Eloquent's auto-serialization ships
+     * the `Media` model with `gcs_path` but no `url` — the bucket object isn't
+     * publicly readable, so the frontend needs a signed URL minted here.
+     *
+     * @return array<string, mixed>
+     */
+    private function serializeJob(RepairJob $job): array
+    {
+        $payload = $job->toArray();
+
+        $payload['stages'] = $job->stages->map(function (JobStage $stage): array {
+            $stageArr = $stage->toArray();
+            $stageArr['media'] = $stage->media->map(fn (Media $m) => [
+                'id' => $m->id,
+                'mime_type' => $m->mime_type,
+                'url' => $this->gcs->signedUrl($m),
+            ])->all();
+
+            return $stageArr;
+        })->all();
+
+        return $payload;
     }
 
     /**

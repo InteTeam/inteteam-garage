@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { AlertCircle, Car, Wrench } from 'lucide-react';
 import CustomerLayout from '@/Layouts/CustomerLayout';
 
@@ -65,6 +65,9 @@ function jobStateLabel(state: string): string {
 }
 
 export default function CustomerDashboard({ customer, linked, vehicles, recentJobs }: Props) {
+    const { ssoPublicUrl } = usePage<{ ssoPublicUrl?: string }>().props;
+    const ssoLogoutUrl = ssoPublicUrl ? `${ssoPublicUrl}/logout` : null;
+
     return (
         <CustomerLayout title={`Welcome${customer.name ? `, ${customer.name.split(' ')[0]}` : ''}`}>
             <Head title="My Account" />
@@ -72,12 +75,20 @@ export default function CustomerDashboard({ customer, linked, vehicles, recentJo
             {!linked && (
                 <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
                     <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
-                    <div>
+                    <div className="flex-1">
                         <p className="text-sm font-medium text-amber-900">Your account isn&apos;t linked to a garage yet.</p>
                         <p className="text-xs text-amber-700 mt-1">
                             Once a mechanic creates a job for the email <code className="font-mono">{customer.email}</code>,
                             it will appear here automatically.
                         </p>
+                        {ssoLogoutUrl && (
+                            <a
+                                href={ssoLogoutUrl}
+                                className="mt-3 inline-block rounded-md bg-amber-900 px-3 py-1.5 text-xs font-medium text-amber-50 hover:bg-amber-800"
+                            >
+                                Not you? Sign in as a different user
+                            </a>
+                        )}
                     </div>
                 </div>
             )}

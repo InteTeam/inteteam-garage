@@ -15,10 +15,13 @@ final class CustomerDashboardTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_unauthenticated_redirected_to_login(): void
+    public function test_unauthenticated_redirected_to_customer_login_not_mechanic(): void
     {
+        // Assert the exact target — a regression that swaps redirectGuestsTo
+        // back to mechanic route('login') would loop in production (mechanic
+        // callback rejects non-mechanics → redirects to /login → loop).
         $this->get(route('customer.dashboard'))
-            ->assertRedirect();
+            ->assertRedirect(route('customer.login'));
     }
 
     public function test_unlinked_customer_sees_banner_no_data(): void

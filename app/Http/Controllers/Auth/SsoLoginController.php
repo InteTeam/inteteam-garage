@@ -51,7 +51,7 @@ final class SsoLoginController extends Controller
         ]);
 
         if ($response->failed()) {
-            return redirect()->route('login')->withErrors(['sso' => 'Authentication failed.']);
+            return redirect()->route('home')->withErrors(['sso' => 'Authentication failed.']);
         }
 
         $tokenData = $response->json();
@@ -60,7 +60,7 @@ final class SsoLoginController extends Controller
             ->get(config('services.sso.url') . '/oauth/userinfo');
 
         if ($userResponse->failed()) {
-            return redirect()->route('login')->withErrors(['sso' => 'Could not retrieve user.']);
+            return redirect()->route('home')->withErrors(['sso' => 'Could not retrieve user.']);
         }
 
         $ssoUser = $userResponse->json();
@@ -75,7 +75,7 @@ final class SsoLoginController extends Controller
             ->first();
 
         if ($mechanic === null) {
-            return redirect()->route('login')->withErrors(['sso' => 'No garage association found for your account.']);
+            return redirect()->route('home')->withErrors(['sso' => 'No garage association found for your account.']);
         }
 
         Auth::login($user);
@@ -90,9 +90,11 @@ final class SsoLoginController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        // Inertia::location() forces a full browser navigation; the Inertia <Link method="post">
-        // XHR cannot follow the cross-origin redirect that route('login') triggers (→ SSO).
-        // Landing on `/` (home) skips the OAuth flow so the SSO session does not auto-relogin.
-        return Inertia::location(route('home'));
+        // Clear SSO session too — otherwise the next login attempt (any role)
+        // gets auto-passed back as the same user. SSO logout?redirect_to=home
+        // bounces the user back here once SSO has invalidated its session.
+        $ssoLogoutUrl = config('services.sso.public_url') . '/logout?redirect_to=' . urlencode(route('home'));
+
+        return Inertia::location($ssoLogoutUrl);
     }
 }

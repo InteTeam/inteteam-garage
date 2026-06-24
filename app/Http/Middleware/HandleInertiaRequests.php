@@ -38,6 +38,10 @@ class HandleInertiaRequests extends Middleware
                 'alert' => fn () => $request->session()->get('alert'),
                 'type' => fn () => $request->session()->get('type'),
             ],
+            // Browser-facing SSO base — Home.tsx links to {ssoPublicUrl}/logout
+            // when a callback bounces back with an "sso" error, so the user can
+            // clear the SSO session and retry as a different role.
+            'ssoPublicUrl' => fn () => config('services.sso.public_url'),
             'ziggy' => fn () => [
                 ...(new Ziggy)->toArray(),
                 'location' => $request->url(),

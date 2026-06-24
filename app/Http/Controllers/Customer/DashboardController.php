@@ -78,7 +78,7 @@ final class DashboardController extends Controller
             'recentJobs' => $recentJobs->map(fn (RepairJob $j) => [
                 'id' => $j->id,
                 'state' => $j->state,
-                'updated_at' => $j->updated_at?->toIso8601String(), // @phpstan-ignore-line property.notFound (RepairJob carries timestamps via the trait — phpdoc lag)
+                'updated_at' => $j->updated_at?->toIso8601String(),
                 'vehicle' => [
                     'registration' => $j->vehicle->registration,
                     'make' => $j->vehicle->make,

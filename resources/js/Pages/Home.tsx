@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import {
     Wrench,
     Camera,
@@ -60,9 +60,29 @@ const STEPS = [
 const TRUST = ['inteteam_crm', 'Google Cloud Storage', 'Signed portal links', 'EN ↔ PL', 'Immutable audit log', 'Inte.Team SSO'];
 
 export default function Home() {
+    const { errors, ssoPublicUrl } = usePage<{ errors: Record<string, string>; ssoPublicUrl?: string }>().props;
+    const ssoError = errors?.sso;
+    const ssoLogoutUrl = ssoPublicUrl ? `${ssoPublicUrl}/logout` : null;
+
     return (
         <div className="min-h-screen bg-slate-50 text-slate-900 antialiased selection:bg-emerald-200/60">
             <Head title="InteTeam Garage — repair work, documented." />
+
+            {ssoError && (
+                <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
+                        <span>{ssoError}</span>
+                        {ssoLogoutUrl && (
+                            <a
+                                href={ssoLogoutUrl}
+                                className="rounded-md bg-amber-900 px-3 py-1.5 text-xs font-medium text-amber-50 hover:bg-amber-800"
+                            >
+                                Log out of SSO and try again
+                            </a>
+                        )}
+                    </div>
+                </div>
+            )}
 
             <header className="sticky top-0 z-40 border-b border-slate-200/60 bg-white/75 backdrop-blur-xl">
                 <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
@@ -80,7 +100,7 @@ export default function Home() {
                     </nav>
                     <div className="flex items-center gap-2">
                         <Button asChild size="sm" variant="outline" className="border-slate-300 bg-white/80 backdrop-blur hover:bg-white">
-                            <a href="/account">
+                            <a href="/account/login">
                                 Customer login
                             </a>
                         </Button>

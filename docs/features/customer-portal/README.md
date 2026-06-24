@@ -112,6 +112,10 @@ Both wrapped in `CrmApiService` with a 60s cache on the email lookup (multi-tab 
 
 ## Related docs
 
-- `docs/database/migrations/028_customers.md`
+- `docs/features/customer-portal/architecture.md` — guard model, identity binding, failure modes
+- `docs/features/customer-portal/COMPONENT_INVENTORY.md` — React reuse + new components + prop-shape gotchas
+- `docs/database/migrations/028_customers.md` — initial `customers` table
+- `docs/database/migrations/029_remember_token_on_customers.md` — idempotent follow-up adding `remember_token`
+- `docs/database/migrations/030_widen_sessions_user_id.md` — `sessions.user_id` widened to hold ULIDs
 - `docs/features/garage-core/portal.md` — original signed-token portal (still active).
 - `inte-playbook/laravel/README.md` — guard/provider conventions this feature follows.

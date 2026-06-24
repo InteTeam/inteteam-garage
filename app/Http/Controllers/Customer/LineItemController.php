@@ -24,33 +24,33 @@ final class LineItemController extends Controller
 
     public function approve(string $jobId, string $lineItemId): RedirectResponse
     {
-        [$job, $lineItem] = $this->resolveOwned($jobId, $lineItemId);
+        [$customer, $job, $lineItem] = $this->resolveOwned($jobId, $lineItemId);
 
-        $this->decisions->approve($job, $lineItem);
+        $this->decisions->approve($job, $lineItem, actorId: $customer->id);
 
         return back()->with(['alert' => 'The item was approved.', 'type' => 'success']);
     }
 
     public function decline(DeclineLineItemRequest $request, string $jobId, string $lineItemId): RedirectResponse
     {
-        [$job, $lineItem] = $this->resolveOwned($jobId, $lineItemId);
+        [$customer, $job, $lineItem] = $this->resolveOwned($jobId, $lineItemId);
 
         /** @var array{notes: string} $validated */
         $validated = $request->validated();
 
-        $this->decisions->decline($job, $lineItem, $validated['notes']);
+        $this->decisions->decline($job, $lineItem, $validated['notes'], actorId: $customer->id);
 
         return back()->with(['alert' => 'The item was declined.', 'type' => 'success']);
     }
 
     public function question(AskLineItemQuestionRequest $request, string $jobId, string $lineItemId): RedirectResponse
     {
-        [$job, $lineItem] = $this->resolveOwned($jobId, $lineItemId);
+        [$customer, $job, $lineItem] = $this->resolveOwned($jobId, $lineItemId);
 
-        /** @var array{notes: string} $validated */
+        /** @var array{message: string} $validated */
         $validated = $request->validated();
 
-        $this->decisions->question($job, $lineItem, $validated['notes']);
+        $this->decisions->question($job, $lineItem, $validated['message'], actorId: $customer->id);
 
         return back()->with(['alert' => 'The question was sent to the mechanic.', 'type' => 'success']);
     }
@@ -58,9 +58,12 @@ final class LineItemController extends Controller
     /**
      * Triple ownership guard: customer must be CRM-linked, job's vehicle must
      * belong to that customer, and the line item must be on the job's current
-     * estimate. Any failure → 404 (not 403, per portal convention).
+     * estimate. Any failure → 404 (not 403, per portal convention). State
+     * mismatch (e.g. customer POSTing to a collected job) → 409 — separate
+     * from ownership so the audit trail can distinguish "guess attack on a
+     * stranger's job" from "stale tab posting to a finished job."
      *
-     * @return array{0: RepairJob, 1: LineItem}
+     * @return array{0: Customer, 1: RepairJob, 2: LineItem}
      */
     private function resolveOwned(string $jobId, string $lineItemId): array
     {
@@ -103,6 +106,14 @@ final class LineItemController extends Controller
             ->where('estimate_id', $estimate->id)
             ->firstOrFail();
 
-        return [$job, $lineItem];
+        // State gate AFTER ownership: 409 for "wrong moment" only leaks for
+        // jobs the customer already owns; foreign jobs still 404 above.
+        abort_unless(
+            in_array($job->state, LineItemDecisionService::ACTIONABLE_STATES, true),
+            409,
+            'This job is no longer accepting line-item decisions.',
+        );
+
+        return [$customer, $job, $lineItem];
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Customer;
 
+use App\Models\ApprovalEvent;
 use App\Models\Customer;
 use App\Models\Estimate;
 use App\Models\Garage;
@@ -29,6 +30,12 @@ final class CustomerLineItemControllerTest extends TestCase
             'id' => $lineItem->id,
             'status' => LineItem::STATUS_APPROVED,
         ]);
+        $this->assertDatabaseHas('approval_events', [
+            'job_id' => $job->id,
+            'event_type' => ApprovalEvent::EVENT_LINE_ITEM_APPROVED,
+            'actor_type' => ApprovalEvent::ACTOR_CUSTOMER,
+            'actor_id' => $customer->id,
+        ]);
     }
 
     public function test_customer_can_decline_with_notes(): void
@@ -45,6 +52,10 @@ final class CustomerLineItemControllerTest extends TestCase
             'id' => $lineItem->id,
             'status' => LineItem::STATUS_DECLINED,
             'customer_notes' => 'Too expensive — postponing',
+        ]);
+        $this->assertDatabaseHas('approval_events', [
+            'event_type' => ApprovalEvent::EVENT_LINE_ITEM_DECLINED,
+            'actor_id' => $customer->id,
         ]);
     }
 
@@ -63,7 +74,7 @@ final class CustomerLineItemControllerTest extends TestCase
 
         $this->actingAs($customer, 'customer')
             ->post(route('customer.line-items.question', ['job' => $job->id, 'lineItem' => $lineItem->id]), [
-                'notes' => 'Is OEM available?',
+                'message' => 'Is OEM available?',
             ])
             ->assertRedirect();
 
@@ -71,16 +82,45 @@ final class CustomerLineItemControllerTest extends TestCase
             'id' => $lineItem->id,
             'status' => LineItem::STATUS_PENDING,
         ]);
+        $this->assertDatabaseHas('approval_events', [
+            'event_type' => ApprovalEvent::EVENT_CUSTOMER_QUESTION,
+            'actor_id' => $customer->id,
+        ]);
+    }
+
+    public function test_question_requires_message_field_not_notes(): void
+    {
+        [$customer, $job, $lineItem] = $this->makeJobWithLineItem();
+
+        $this->actingAs($customer, 'customer')
+            ->post(route('customer.line-items.question', ['job' => $job->id, 'lineItem' => $lineItem->id]), [
+                'notes' => 'wrong field name',
+            ])
+            ->assertSessionHasErrors('message');
+    }
+
+    public function test_state_gate_returns_409_on_finished_job(): void
+    {
+        [$customer, $job, $lineItem] = $this->makeJobWithLineItem(state: RepairJob::STATE_COLLECTED);
+
+        $this->actingAs($customer, 'customer')
+            ->post(route('customer.line-items.approve', ['job' => $job->id, 'lineItem' => $lineItem->id]))
+            ->assertStatus(409);
+
+        $this->assertDatabaseHas('line_items', [
+            'id' => $lineItem->id,
+            'status' => LineItem::STATUS_PENDING,
+        ]);
+        $this->assertDatabaseMissing('approval_events', [
+            'job_id' => $job->id,
+            'event_type' => ApprovalEvent::EVENT_LINE_ITEM_APPROVED,
+        ]);
     }
 
     public function test_foreign_customer_cannot_approve_others_line_item(): void
     {
         [, $job, $lineItem] = $this->makeJobWithLineItem(crmId: 'crm-owner');
-        $stranger = Customer::create([
-            'email' => 'stranger@example.com',
-            'name' => 'Stranger',
-            'crm_customer_id' => 'crm-stranger',
-        ]);
+        $stranger = Customer::factory()->linked('crm-stranger')->create();
 
         $this->actingAs($stranger, 'customer')
             ->post(route('customer.line-items.approve', ['job' => $job->id, 'lineItem' => $lineItem->id]))
@@ -93,13 +133,9 @@ final class CustomerLineItemControllerTest extends TestCase
     }
 
     /** @return array{0: Customer, 1: RepairJob, 2: LineItem} */
-    private function makeJobWithLineItem(string $crmId = 'crm-1'): array
+    private function makeJobWithLineItem(string $crmId = 'crm-1', string $state = RepairJob::STATE_AWAITING_APPROVAL): array
     {
-        $customer = Customer::create([
-            'email' => $crmId . '@example.com',
-            'name' => 'C-' . $crmId,
-            'crm_customer_id' => $crmId,
-        ]);
+        $customer = Customer::factory()->linked($crmId)->create();
 
         $garage = Garage::create([
             'name' => 'Garage ' . uniqid(),
@@ -115,14 +151,14 @@ final class CustomerLineItemControllerTest extends TestCase
             'registration' => 'AB12 CDE', 'make' => 'Ford', 'model' => 'Focus',
         ]);
 
-        $job = RepairJob::withoutGlobalScopes()->create([
+        // `state` is not in $fillable (state machine owns transitions) —
+        // forceCreate bypasses the guard for the seed setup, matching the
+        // portal test helper pattern.
+        $job = RepairJob::withoutGlobalScopes()->forceCreate([
             'garage_id' => $garage->id,
             'vehicle_id' => $vehicle->id,
+            'state' => $state,
         ]);
-
-        // currentEstimate is the latest by revision_number — minimum viable to
-        // satisfy LineItemController::resolveOwned's join.
-        $job->update(['state' => RepairJob::STATE_AWAITING_APPROVAL]);
 
         $estimate = Estimate::withoutGlobalScopes()->create([
             'garage_id' => $garage->id,

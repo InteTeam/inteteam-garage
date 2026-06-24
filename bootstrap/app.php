@@ -8,6 +8,7 @@ use App\Http\Middleware\ValidatePortalToken;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -30,6 +31,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             HandleInertiaRequests::class,
         ]);
+
+        // Unauth requests to /account/* must land on customer SSO, not mechanic
+        // SSO. Without this the default route('login') sends them through the
+        // mechanic callback, which rejects non-mechanics and ping-pongs back.
+        $middleware->redirectGuestsTo(fn (Request $request) => $request->is('account', 'account/*')
+            ? route('customer.login')
+            : route('login'));
 
         $middleware->alias([
             'garage' => EnsureGarageContext::class,
