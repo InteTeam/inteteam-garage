@@ -13,6 +13,7 @@ The single reference for "what lives where" in this repo. Read this **before** m
 | `garage_admin` | Inte.Team SSO → User → Mechanic | `Mechanic::ROLE_GARAGE_ADMIN` | Mechanic dashboard, settings, full CRUD |
 | `mechanic` | Inte.Team SSO → User → Mechanic | `Mechanic::ROLE_MECHANIC` | Mechanic dashboard, no settings |
 | Customer (portal) | Signed `SignedPortalToken` URL — no SSO | none | Portal routes (`routes/portal.php`), token-scoped to one job |
+| Customer (account) | Inte.Team SSO → CRM email match → Customer | `Customer` (no `garage_id`) | Account routes (`routes/customer.php`), cross-garage aggregate view |
 | System | n/a | `ApprovalEvent::ACTOR_SYSTEM` | Scheduled commands, webhooks |
 | Anonymous | n/a | n/a | `GET /` (public landing), `GET /login` (SSO redirect), `POST /webhooks/payment-confirmed` |
 
@@ -54,6 +55,23 @@ Multi-tenancy is per-`Garage`. Every tenant model uses `HasGarageScope` (resolve
 | POST | `/jobs/{job}/portal-link/regenerate` | `PortalLinkController@regenerate` | Revokes old token, mints new |
 | GET | `/settings` | `GarageSettingsController@index` | Admin only |
 | PUT | `/settings` | `GarageSettingsController@update` | Admin only |
+
+### `routes/customer.php` — customer account portal (`auth:customer` guard, SSO)
+
+All routes prefixed with `/account`. Distinct from `routes/portal.php` — the signed-token portal stays in place for one-off magic links. This file is for the persistent SSO-authenticated customer workspace (multi-vehicle, multi-job, transaction history).
+
+| Method | URI | Controller@method | Notes |
+|---|---|---|---|
+| GET | `/account/login` | `Auth\CustomerSsoLoginController@redirect` | Renders `Auth/CustomerSsoSetup` when SSO env vars unset. |
+| GET | `/account/callback` | `Auth\CustomerSsoLoginController@callback` | OAuth2 exchange → `CrmApiService::findCustomerByEmail()` → `Customer::firstOrNew` + login on guard `customer`. CRM miss is non-fatal (banner state). |
+| POST | `/account/logout` | `Auth\CustomerSsoLoginController@logout` | `Inertia::location(route('home'))` — same gotcha as mechanic logout (avoid 302 → SSO auto-relogin). |
+| GET | `/account` | `Customer\DashboardController@index` | Cross-garage vehicle list with compliance traffic-light + recent jobs. `withoutGlobalScopes()` since customer is not garage-scoped. |
+| GET | `/account/vehicles/{vehicle}` | `Customer\VehicleController@show` | Read-only Details/Compliance tabs. No DVLA refresh CTA. 404 if vehicle's `crm_customer_id` doesn't match the customer (Poka-Yoke). |
+| GET | `/account/jobs/{job}` | `Customer\JobController@show` | Timeline + stages + media + line items. Ownership via `vehicle.crm_customer_id` join, `withoutGlobalScopes`. |
+| POST | `/account/jobs/{job}/line-items/{lineItem}/approve` | `Customer\LineItemController@approve` | Triple guard: customer linked → job owned via vehicle → line item on `currentEstimate`. |
+| POST | `/account/jobs/{job}/line-items/{lineItem}/decline` | `Customer\LineItemController@decline` | `notes` required (`Customer\DeclineLineItemRequest`). |
+| POST | `/account/jobs/{job}/line-items/{lineItem}/question` | `Customer\LineItemController@question` | `notes` required (`Customer\AskLineItemQuestionRequest`). |
+| GET | `/account/transactions` | `Customer\TransactionController@index` | Pulls from CRM `/api/v1/internal/payments`. CRM 5xx → empty list, never 500. |
 
 ### `routes/portal.php` — customer-facing (`portal.token` middleware, no SSO)
 

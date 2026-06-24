@@ -26,6 +26,18 @@ final class CrmPaymentService
             ->sum('price') ?? 0);
     }
 
+    /**
+     * Payment history for the customer portal — thin pass-through to the CRM
+     * service. Lives here (not directly on the controller) so future
+     * formatting/normalisation has a single landing spot.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function historyForCustomer(string $crmCustomerId): array
+    {
+        return $this->crmApiService->listPaymentsForCustomer($crmCustomerId);
+    }
+
     public function requestPayment(RepairJob $job): string
     {
         /** @var Estimate $estimate */

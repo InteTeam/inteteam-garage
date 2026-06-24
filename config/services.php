@@ -58,6 +58,11 @@ return [
         'public_url' => env('SSO_PUBLIC_URL', env('SSO_URL')),
         'client_id' => env('SSO_CLIENT_ID'),
         'client_secret' => env('SSO_CLIENT_SECRET'),
+        // Separate OAuth2 client for the customer-facing account portal —
+        // distinct from mechanic SSO so customer logins land on a different
+        // redirect_uri and cannot be auto-elevated to the mechanic guard.
+        'customer_client_id' => env('SSO_CUSTOMER_CLIENT_ID'),
+        'customer_client_secret' => env('SSO_CUSTOMER_CLIENT_SECRET'),
     ],
 
     'dvla' => [

@@ -32,7 +32,9 @@ export default function VehiclesIndex({ vehicles }: Props) {
                         <tbody className="divide-y divide-gray-100">
                             {vehicles.map((v) => (
                                 <tr key={v.id} className="hover:bg-gray-50">
-                                    <td className="px-4 py-3 font-medium text-gray-900">{v.registration}</td>
+                                    <td className="px-4 py-3 font-medium">
+                                        <Link href={`/vehicles/${v.id}`} className="text-blue-600 hover:text-blue-800">{v.registration}</Link>
+                                    </td>
                                     <td className="px-4 py-3 text-gray-600">{v.make} {v.model}</td>
                                     <td className="px-4 py-3 text-gray-500">{v.year ?? '—'}</td>
                                     <td className="px-4 py-3 text-right">

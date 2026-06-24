@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker compose *)",
+      "Bash(git config *)",
+      "Bash(git check-ignore *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(curl -sS -o /tmp/out.txt -w \"HTTP %{http_code}\\\\n\" -X POST \"http://localhost:8085/jobs/01kv3twr85symr3ttkk18r45dt/estimates/01kvk9m7xtjzzpw6szawg0ama0/line-items\" -H \"X-Inertia: true\" -H \"Accept: text/html, application/xhtml+xml\")",
+      "Read(//tmp/**)",
+      "Bash(curl *)",
+      "PowerShell(docker exec garage_php *)"
+    ]
+  }
+}

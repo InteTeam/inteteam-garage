@@ -78,12 +78,19 @@ export default function Home() {
                         <a href="#how-it-works" className="transition-colors hover:text-slate-900">How it works</a>
                         <a href="#portal" className="transition-colors hover:text-slate-900">For customers</a>
                     </nav>
-                    <Button asChild size="sm" className="bg-slate-900 hover:bg-slate-700">
-                        <a href="/login">
-                            <LogIn className="h-4 w-4" />
-                            Sign in
-                        </a>
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button asChild size="sm" variant="outline" className="border-slate-300 bg-white/80 backdrop-blur hover:bg-white">
+                            <a href="/account">
+                                Customer login
+                            </a>
+                        </Button>
+                        <Button asChild size="sm" className="bg-slate-900 hover:bg-slate-700">
+                            <a href="/login">
+                                <LogIn className="h-4 w-4" />
+                                Mechanic sign in
+                            </a>
+                        </Button>
+                    </div>
                 </div>
             </header>
 
