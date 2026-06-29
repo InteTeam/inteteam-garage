@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Auth\SignInController;
 use App\Http\Controllers\Auth\SsoLoginController;
 use App\Http\Controllers\ComplianceRecordController;
 use App\Http\Controllers\DashboardController;
@@ -28,6 +29,7 @@ use Illuminate\Support\Facades\Route;
 | Auth Routes (SSO)
 |--------------------------------------------------------------------------
 */
+Route::get('/sign-in', [SignInController::class, 'redirect'])->name('sign-in');
 Route::get('/login', [SsoLoginController::class, 'redirect'])->name('login');
 Route::get('/auth/callback', [SsoLoginController::class, 'callback'])->name('auth.callback');
 Route::post('/logout', [SsoLoginController::class, 'logout'])->name('logout');

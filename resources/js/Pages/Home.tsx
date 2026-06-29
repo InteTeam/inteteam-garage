@@ -99,15 +99,10 @@ export default function Home() {
                         <a href="#portal" className="transition-colors hover:text-slate-900">For customers</a>
                     </nav>
                     <div className="flex items-center gap-2">
-                        <Button asChild size="sm" variant="outline" className="border-slate-300 bg-white/80 backdrop-blur hover:bg-white">
-                            <a href="/account/login">
-                                Customer login
-                            </a>
-                        </Button>
                         <Button asChild size="sm" className="bg-slate-900 hover:bg-slate-700">
-                            <a href="/login">
+                            <a href="/sign-in">
                                 <LogIn className="h-4 w-4" />
-                                Mechanic sign in
+                                Sign in
                             </a>
                         </Button>
                     </div>
@@ -152,8 +147,8 @@ export default function Home() {
                             style={{ animationDelay: '0.4s' }}
                         >
                             <Button asChild size="lg" className="group h-12 rounded-full bg-slate-900 px-6 text-sm shadow-lg shadow-slate-900/10 hover:bg-slate-800">
-                                <a href="/login">
-                                    Sign in to your garage
+                                <a href="/sign-in">
+                                    Sign in
                                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                                 </a>
                             </Button>
@@ -359,7 +354,7 @@ export default function Home() {
                             </p>
                             <div className="mt-7 flex justify-center">
                                 <Button asChild size="lg" className="group h-12 rounded-full bg-slate-900 px-7 text-sm shadow-lg shadow-slate-900/10 hover:bg-slate-800">
-                                    <a href="/login">
+                                    <a href="/sign-in">
                                         Sign in
                                         <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                                     </a>
@@ -380,8 +375,8 @@ export default function Home() {
                         <a href="https://inte.team" className="transition-colors hover:text-slate-900" target="_blank" rel="noreferrer">
                             Inte.Team
                         </a>
-                        <a href="/login" className="transition-colors hover:text-slate-900">
-                            Mechanic sign-in
+                        <a href="/sign-in" className="transition-colors hover:text-slate-900">
+                            Sign in
                         </a>
                     </div>
                 </div>
