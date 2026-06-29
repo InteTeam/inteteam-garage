@@ -1,5 +1,5 @@
 import GarageLayout from '@/Layouts/GarageLayout';
-import { useForm } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 
 type Channel = 'email' | 'sms' | 'in_app';
 type Recipient = 'customer' | 'customer_and_mechanic' | 'mechanic';
@@ -74,6 +74,7 @@ export default function SettingsIndex({ garage }: Props) {
 
     return (
         <GarageLayout title="Settings">
+            <Head title="Settings" />
             <div className="max-w-xl">
                 <h1 className="text-2xl font-semibold mb-6">Garage Settings</h1>
                 <form onSubmit={handleSubmit} className="space-y-5">

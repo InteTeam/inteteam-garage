@@ -4,8 +4,14 @@ import '../css/app.css';
 import { registerSW } from 'virtual:pwa-register';
 import { route } from 'ziggy-js';
 
-declare global { function route(...args: Parameters<typeof route>): ReturnType<typeof route>; }
-(window as any).route = route;
+declare global {
+    function route(...args: Parameters<typeof route>): ReturnType<typeof route>;
+    interface Window {
+        route: typeof route;
+    }
+}
+
+window.route = route;
 
 import { createRoot } from 'react-dom/client';
 import { createInertiaApp } from '@inertiajs/react';

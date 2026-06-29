@@ -4,7 +4,6 @@ import { Button } from '@/Components/ui/button';
 import { PreviewLineItem, TranslationPreviewRow } from '@/Components/TranslationPreviewRow';
 import { Languages, X } from 'lucide-react';
 import { ReactNode, useState } from 'react';
-import axios from 'axios';
 
 interface PreviewResponse {
     translations: PreviewLineItem[];
@@ -30,13 +29,35 @@ export function TranslationPreviewDialog({ jobId, estimateId, trigger }: Props) 
 
     const previewUrl = `/jobs/${jobId}/estimates/${estimateId}/preview-translation`;
 
+    async function fetchPreview(): Promise<PreviewResponse> {
+        // Laravel's VerifyCsrfToken middleware reads the XSRF-TOKEN cookie via
+        // the X-XSRF-TOKEN header (URL-decoded). Match axios's default behaviour
+        // so this fetch stays interchangeable with the rest of the app.
+        const xsrf = document.cookie
+            .split('; ')
+            .find(c => c.startsWith('XSRF-TOKEN='))
+            ?.split('=')[1];
+        const res = await fetch(previewUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                ...(xsrf ? { 'X-XSRF-TOKEN': decodeURIComponent(xsrf) } : {}),
+            },
+        });
+        if (!res.ok) throw new Error(`Preview failed (${res.status})`);
+
+        return res.json();
+    }
+
     async function loadPreview() {
         setLoading(true);
         setError(null);
         try {
-            const res = await axios.post<PreviewResponse>(previewUrl);
-            setPreview(res.data);
-            setEdits(Object.fromEntries(res.data.translations.map((t) => [t.id, t.translated])));
+            const data = await fetchPreview();
+            setPreview(data);
+            setEdits(Object.fromEntries(data.translations.map((t) => [t.id, t.translated])));
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Failed to load preview');
         } finally {
@@ -48,8 +69,8 @@ export function TranslationPreviewDialog({ jobId, estimateId, trigger }: Props) 
         if (!preview) return;
         setLoading(true);
         try {
-            const res = await axios.post<PreviewResponse>(previewUrl);
-            const fresh = res.data.translations.find((t) => t.id === itemId);
+            const data = await fetchPreview();
+            const fresh = data.translations.find((t) => t.id === itemId);
             if (fresh) setEdits((prev) => ({ ...prev, [itemId]: fresh.translated }));
         } finally {
             setLoading(false);

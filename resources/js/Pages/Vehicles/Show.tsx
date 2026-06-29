@@ -1,6 +1,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import GarageLayout from '@/Layouts/GarageLayout';
 import { Button } from '@/Components/ui/button';
+import { COMPLIANCE_LABELS, type ComplianceType } from '@/lib/compliance';
 import { Pencil, RefreshCw } from 'lucide-react';
 import { FormEvent, useState } from 'react';
 
@@ -15,8 +16,6 @@ interface Vehicle {
     colour: string | null;
     created_at: string;
 }
-
-type ComplianceType = 'mot' | 'tax' | 'insurance';
 
 interface ComplianceRecord {
     id: string;
@@ -37,12 +36,6 @@ interface Props {
 
 const labelClass = 'text-xs uppercase tracking-wide text-gray-500 font-medium';
 const valueClass = 'text-sm text-gray-900 mt-0.5';
-
-const COMPLIANCE_LABELS: Record<ComplianceType, string> = {
-    mot: 'MOT',
-    tax: 'Road Tax',
-    insurance: 'Insurance',
-};
 
 function formatDate(iso: string): string {
     return new Date(iso).toLocaleDateString('en-GB');

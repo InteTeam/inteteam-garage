@@ -1,5 +1,5 @@
 import GarageLayout from '@/Layouts/GarageLayout';
-import { router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 
 interface Job {
     id: string;
@@ -31,6 +31,7 @@ export default function PortalLink({ job, portalUrl, token }: Props) {
 
     return (
         <GarageLayout title="Portal Link">
+            <Head title="Portal Link" />
             <div className="max-w-xl">
                 <div className="mb-4">
                     <a href={`/jobs/${job.id}`} className="text-blue-600 hover:underline text-sm">

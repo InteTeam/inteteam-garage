@@ -13,6 +13,7 @@ use App\Services\Dvla\VehicleEnquiryResult;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 final class VehicleComplianceService
 {
@@ -80,34 +81,42 @@ final class VehicleComplianceService
     public function applyDvlaResult(Vehicle $vehicle, VehicleEnquiryResult $result, ?User $user): array
     {
         $current = $this->currentForVehicle($vehicle);
-        $created = [];
 
-        foreach ([
-            [ComplianceType::MOT, $result->motExpiryDate, $result->motStatus],
-            [ComplianceType::TAX, $result->taxDueDate, $result->taxStatus],
-        ] as [$type, $expiresOn, $status]) {
-            if ($expiresOn === null) {
-                continue;
+        // Atomic: a single DVLA refresh inserts both MOT and Tax rows or none.
+        // Without the transaction, a mid-loop DB failure (lost connection,
+        // constraint hiccup) leaves the vehicle with a half-applied refresh
+        // and the next click would not re-attempt the missing row because
+        // the first one already changed `current` per type.
+        return DB::transaction(function () use ($vehicle, $result, $current, $user): array {
+            $created = [];
+
+            foreach ([
+                [ComplianceType::MOT, $result->motExpiryDate, $result->motStatus],
+                [ComplianceType::TAX, $result->taxDueDate, $result->taxStatus],
+            ] as [$type, $expiresOn, $status]) {
+                if ($expiresOn === null) {
+                    continue;
+                }
+
+                $latest = $current[$type->value] ?? null;
+                $newDate = Carbon::instance($expiresOn)->toDateString();
+
+                if ($latest !== null && $latest->expires_on->toDateString() === $newDate) {
+                    continue;
+                }
+
+                $created[] = ComplianceRecord::create([
+                    'vehicle_id' => $vehicle->id,
+                    'garage_id' => $vehicle->garage_id,
+                    'recorded_by_user_id' => $user?->id,
+                    'type' => $type,
+                    'source' => ComplianceSource::DVLA,
+                    'expires_on' => $newDate,
+                    'note' => $status !== null ? "DVLA status: {$status}" : null,
+                ]);
             }
 
-            $latest = $current[$type->value] ?? null;
-            $newDate = Carbon::instance($expiresOn)->toDateString();
-
-            if ($latest !== null && $latest->expires_on->toDateString() === $newDate) {
-                continue;
-            }
-
-            $created[] = ComplianceRecord::create([
-                'vehicle_id' => $vehicle->id,
-                'garage_id' => $vehicle->garage_id,
-                'recorded_by_user_id' => $user?->id,
-                'type' => $type,
-                'source' => ComplianceSource::DVLA,
-                'expires_on' => $newDate,
-                'note' => $status !== null ? "DVLA status: {$status}" : null,
-            ]);
-        }
-
-        return $created;
+            return $created;
+        });
     }
 }

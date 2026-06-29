@@ -15,7 +15,7 @@ The single reference for "what lives where" in this repo. Read this **before** m
 | Customer (portal) | Signed `SignedPortalToken` URL — no SSO | none | Portal routes (`routes/portal.php`), token-scoped to one job |
 | Customer (account) | Inte.Team SSO → CRM email match → Customer | `Customer` (no `garage_id`) | Account routes (`routes/customer.php`), cross-garage aggregate view |
 | System | n/a | `ApprovalEvent::ACTOR_SYSTEM` | Scheduled commands, webhooks |
-| Anonymous | n/a | n/a | `GET /` (public landing), `GET /login` (SSO redirect), `POST /webhooks/payment-confirmed` |
+| Anonymous | n/a | n/a | `GET /` (public landing), `GET /sign-in` (SSO gateway), `POST /webhooks/payment-confirmed` |
 
 Multi-tenancy is per-`Garage`. Every tenant model uses `HasGarageScope` (resolves from `session('current_garage_id')` via `EnsureGarageContext` middleware).
 
@@ -27,7 +27,8 @@ Multi-tenancy is per-`Garage`. Every tenant model uses `HasGarageScope` (resolve
 
 | Method | URI | Controller@method | Notes |
 |---|---|---|---|
-| GET | `/login` | `Auth\SsoLoginController@redirect` | Redirects to SSO `/oauth/authorize` |
+| GET | `/sign-in` | `Auth\SignInController@redirect` | Consolidation gateway (audit 9). Authed mechanic → `/dashboard`; authed customer → `/account`; guests → SSO `/apps/garage/continue` where the role picker lives. Single entry replaces the dual "Customer login" / "Mechanic sign in" CTAs on Home.tsx. Renders `Auth/SsoSetup` if `SSO_PUBLIC_URL` missing. |
+| GET | `/login` | `Auth\SsoLoginController@redirect` | Indirect entry. No longer linked from UI but kept alive as the OAuth `redirect_uri` target for the mechanic Passport client (configured in SSO `config/apps.php`). SSO bounces the user here after the role picker. |
 | GET | `/auth/callback` | `Auth\SsoLoginController@callback` | Exchanges code → token, resolves Mechanic |
 | POST | `/logout` | `Auth\SsoLoginController@logout` | |
 | GET | `/` | `HomeController@index` | **Public landing.** Guests get `Pages/Home.tsx` (mobile-first marketing page). Authed users 302 → `/dashboard` (preserves `EnsureGarageContext` middleware chain). |
@@ -62,7 +63,7 @@ All routes prefixed with `/account`. Distinct from `routes/portal.php` — the s
 
 | Method | URI | Controller@method | Notes |
 |---|---|---|---|
-| GET | `/account/login` | `Auth\CustomerSsoLoginController@redirect` | Renders `Auth/CustomerSsoSetup` when SSO env vars unset. |
+| GET | `/account/login` | `Auth\CustomerSsoLoginController@redirect` | Indirect entry. No longer linked from UI (audit 9 consolidation routes via `/sign-in`); kept as the OAuth `redirect_uri` target for the customer Passport client. Still renders `Auth/CustomerSsoSetup` when SSO env vars unset. |
 | GET | `/account/callback` | `Auth\CustomerSsoLoginController@callback` | OAuth2 exchange → `CrmApiService::findCustomerByEmail()` → `Customer::firstOrNew` + login on guard `customer`. CRM miss is non-fatal (banner state). |
 | POST | `/account/logout` | `Auth\CustomerSsoLoginController@logout` | `Inertia::location(route('home'))` — same gotcha as mechanic logout (avoid 302 → SSO auto-relogin). |
 | GET | `/account` | `Customer\DashboardController@index` | Cross-garage vehicle list with compliance traffic-light + recent jobs. `withoutGlobalScopes()` since customer is not garage-scoped. |
@@ -242,7 +243,7 @@ All business logic lives in `app/Services/`. Controllers delegate to services; s
 ## Gotchas
 
 - **`SSO_URL` vs `SSO_PUBLIC_URL`.** Browser redirect to `/oauth/authorize` uses `services.sso.public_url` (`http://localhost:8088` for dev). Server-side token/userinfo calls use `services.sso.url` (`http://host.docker.internal:8088`). Container-side `localhost` ≠ host's `localhost`.
-- **Public landing `/` — Sign-in CTAs are plain `<a>`, NOT Inertia `<Link>`.** `HomeController` renders `Pages/Home.tsx` for guests, 302→`/dashboard` for authed (so `EnsureGarageContext` still runs on protected pages). All four `/login` CTAs in `Home.tsx` (header, hero, final CTA, footer) are `<a href="/login">`. Inertia `<Link>` would XHR to `/login` with `X-Inertia: true`, Laravel returns 302 to the SSO host (`localhost:8088`), browser blocks cross-origin XHR redirect → button silently does nothing. If a future refactor rewrites them as `<Link>` thinking it's the convention, sign-in breaks in incognito. Same rule applies to any future public page that has a sign-in / external-redirect CTA.
+- **Public landing `/` — Sign-in CTAs are plain `<a>`, NOT Inertia `<Link>`.** `HomeController` renders `Pages/Home.tsx` for guests, 302→`/dashboard` for authed (so `EnsureGarageContext` still runs on protected pages). After audit 9 consolidation, `Home.tsx` has a single `/sign-in` CTA reused in four spots (header, hero, final CTA, footer) — all are `<a href="/sign-in">`. `SignInController` issues a server 302 to SSO `/apps/garage/continue`. Inertia `<Link>` would XHR to `/sign-in` with `X-Inertia: true`, browser then blocks the cross-origin XHR redirect to SSO → button silently does nothing. If a future refactor rewrites them as `<Link>` thinking it's the convention, sign-in breaks in incognito. Same rule applies to any future public page that has a sign-in / external-redirect CTA.
 - **GCS keys path.** Passport-style: `Passport::loadKeysFrom(base_path())` in `AppServiceProvider` (not storage_path).
 - **`APP_URL` must include `:8085`.** `route('auth.callback')` builds the redirect URI from `APP_URL`; if port is missing the SSO client redirect_uri whitelist won't match.
 - **OneDrive bind mount + opcache.** `opcache.validate_timestamps=0` is on (set in `docker/php/php.ini`); after any PHP edit run `docker compose exec php-fpm php artisan optimize:clear` or restart `php-fpm` + `nginx` so the new code is loaded.

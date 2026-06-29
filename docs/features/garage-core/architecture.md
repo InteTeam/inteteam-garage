@@ -50,3 +50,13 @@ Glossary loaded from `database/seeders/AutomotiveGlossarySeeder.php`.
 
 - `GarageLayout` — mechanic/admin dashboard (authenticated, full nav)
 - `PortalLayout` — customer portal (no auth, minimal branding shell, garage logo future)
+
+## Sign-In Consolidation (audit 9 — 2026-06-29)
+
+Single entry point `GET /sign-in` → `SignInController`. The controller short-circuits already-authenticated users (mechanics → `/dashboard`, customers → `/account`) and 302s guests to SSO `/apps/garage/continue`. SSO renders the role picker (Mechanic / Customer) on its login page and, after auth, bounces the user through `/oauth/authorize` using the per-role client_id + redirect_uri configured in SSO's `config/apps.php`. Garage's `/auth/callback` and `/account/callback` are unchanged.
+
+Why this lives at SSO: a mechanic with a personal vehicle could otherwise silently land in the wrong context. Putting the role picker at the identity boundary makes it Poka-Yoke — every login is an explicit context choice, never inferred from history.
+
+Why future-proof: SSO's app registry (`config/apps.php`) is keyed by app slug. Adding CRM or any other Inte.Team app requires only one config entry and one Passport client per role — no SSO code change.
+
+Old routes `/login` and `/account/login` remain alive as Passport `redirect_uri` targets but are no longer linked from UI. See `docs/app-map.md` for the routing table; gotcha on plain `<a>` (not Inertia `<Link>`) for the CTAs is documented there too.

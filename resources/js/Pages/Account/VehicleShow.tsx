@@ -2,8 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import CustomerLayout from '@/Layouts/CustomerLayout';
-
-type ComplianceType = 'mot' | 'tax' | 'insurance';
+import { COMPLIANCE_LABELS, type ComplianceType } from '@/lib/compliance';
 
 interface ComplianceRecord {
     id: string;
@@ -29,12 +28,6 @@ interface Props {
     compliance: Record<ComplianceType, ComplianceRecord | null>;
     complianceHistory: ComplianceRecord[];
 }
-
-const COMPLIANCE_LABELS: Record<ComplianceType, string> = {
-    mot: 'MOT',
-    tax: 'Road Tax',
-    insurance: 'Insurance',
-};
 
 function daysUntil(date: string): number {
     const target = new Date(date + 'T00:00:00');
