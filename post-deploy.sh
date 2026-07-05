@@ -58,6 +58,15 @@ fi
 docker compose exec -T php-fpm php artisan migrate --force
 docker compose exec -T php-fpm php artisan storage:link 2>/dev/null || true
 
+# One-shot admin bootstrap for fresh envs. Read GARAGE_BOOTSTRAP_ADMIN_EMAIL
+# from .env (Panel-managed) and pass as CLI arg so config:cache doesn't hide it.
+# Command is idempotent (firstOrCreate) — safe to run on every deploy. Remove
+# the env var in Panel once the admin exists.
+BOOTSTRAP_EMAIL="$(grep '^GARAGE_BOOTSTRAP_ADMIN_EMAIL=' .env | cut -d= -f2 | tr -d '"' || true)"
+if [[ -n "$BOOTSTRAP_EMAIL" ]]; then
+  docker compose exec -T php-fpm php artisan garage:bootstrap-admin --email="$BOOTSTRAP_EMAIL"
+fi
+
 # Production cache warming — skip if APP_URL is not set (dev/local mode)
 APP_URL="$(grep '^APP_URL=' .env | cut -d= -f2 || true)"
 if [[ "$APP_URL" == https://* ]]; then
