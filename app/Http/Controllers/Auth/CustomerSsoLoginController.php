@@ -50,7 +50,11 @@ final class CustomerSsoLoginController extends Controller
             return redirect()->route('home')->withErrors(['sso' => 'Authentication failed.']);
         }
 
-        $response = Http::post(config('services.sso.url') . '/oauth/token', [
+        // OAuth 2.0 token endpoint requires application/x-www-form-urlencoded.
+        // Http::post() defaults to JSON — Passport's PSR-7 request then reads
+        // an empty parsed body, no grant matches grant_type, and league throws
+        // unsupported_grant_type. See SsoLoginController::callback for detail.
+        $response = Http::asForm()->post(config('services.sso.url') . '/oauth/token', [
             'grant_type' => 'authorization_code',
             'client_id' => config('services.sso.customer_client_id'),
             'client_secret' => config('services.sso.customer_client_secret'),

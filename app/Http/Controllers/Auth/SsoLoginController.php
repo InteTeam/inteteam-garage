@@ -42,7 +42,13 @@ final class SsoLoginController extends Controller
     {
         $code = $request->query('code');
 
-        $response = Http::post(config('services.sso.url') . '/oauth/token', [
+        // OAuth 2.0 requires application/x-www-form-urlencoded at the token
+        // endpoint. Laravel's Http::post() defaults to JSON (PendingRequest
+        // constructor calls asJson()), and Passport's PSR-7 request returns
+        // null from getParsedBody() for JSON bodies — which surfaces on the
+        // client as `unsupported_grant_type` because no grant sees grant_type
+        // in the parsed body. asForm() is required.
+        $response = Http::asForm()->post(config('services.sso.url') . '/oauth/token', [
             'grant_type' => 'authorization_code',
             'client_id' => config('services.sso.client_id'),
             'client_secret' => config('services.sso.client_secret'),
