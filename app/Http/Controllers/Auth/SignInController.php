@@ -35,6 +35,13 @@ final class SignInController extends Controller
             ]);
         }
 
-        return redirect("{$ssoUrl}/apps/garage/continue");
+        // Local role picker instead of SSO's /apps/garage/continue — the SSO
+        // picker requires GARAGE_*_CLIENT_ID env vars on the SSO server. Going
+        // straight to /login or /account/login skips that entirely; each
+        // controller builds /oauth/authorize using this app's own env.
+        return Inertia::render('Auth/RolePicker', [
+            'mechanicLoginUrl' => route('login'),
+            'customerLoginUrl' => route('customer.login'),
+        ]);
     }
 }
