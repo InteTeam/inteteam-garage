@@ -77,8 +77,13 @@ else
   docker compose exec -T php-fpm php artisan optimize:clear
 fi
 
-# Restart queue-worker on every deploy so it loads the latest code and config
-docker compose restart queue-worker
+# Restart php-fpm + queue-worker + nginx on every deploy so all long-running
+# processes pick up the latest PHP code. Without php-fpm restart, OPcache
+# keeps serving stale bytecode for controllers/config until the next fpm
+# restart. Nginx follows the same pattern as the APP_KEY-generation branch
+# above — it caches php-fpm's container IP and would return 502 otherwise.
+docker compose restart php-fpm queue-worker nginx
+sleep 3
 
 # Build frontend assets
 docker run --rm \
