@@ -58,28 +58,28 @@ export default function PortalJob({ job, token }: Props) {
             <Head title="Your Repair Job" />
 
             <div className="mb-4 flex items-center gap-3">
-                <span className="font-medium text-gray-700">
+                <span className="font-medium text-gray-700 dark:text-slate-300">
                     {job.vehicle.registration} · {job.vehicle.make} {job.vehicle.model}
                 </span>
                 <JobStateBadge state={job.state} />
             </div>
 
             {job.current_estimate && (
-                <div className="bg-white rounded-lg border border-gray-200 p-5 mb-4">
-                    <h2 className="font-semibold text-gray-900 mb-4">
+                <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 p-5 mb-4">
+                    <h2 className="font-semibold text-gray-900 dark:text-white mb-4">
                         Estimate #{job.current_estimate.revision_number}
                     </h2>
                     <div className="space-y-3">
                         {lineItems.map((item) => (
-                            <div key={item.id} className="border border-gray-100 rounded-md p-3">
+                            <div key={item.id} className="border border-gray-100 dark:border-slate-800 rounded-md p-3">
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="flex-1">
-                                        <p className="text-sm font-medium text-gray-900">{item.description}</p>
-                                        <p className="text-sm text-gray-500">£{Number(item.price).toFixed(2)}</p>
+                                        <p className="text-sm font-medium text-gray-900 dark:text-white">{item.description}</p>
+                                        <p className="text-sm text-gray-500 dark:text-slate-400">£{Number(item.price).toFixed(2)}</p>
                                     </div>
                                     {item.status !== 'pending' ? (
                                         <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                                            item.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                            item.status === 'approved' ? 'bg-green-100 text-green-700 dark:bg-emerald-950/40 dark:text-emerald-300' : 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300'
                                         }`}>
                                             {item.status}
                                         </span>
@@ -87,13 +87,13 @@ export default function PortalJob({ job, token }: Props) {
                                         <div className="flex gap-2 shrink-0">
                                             <button
                                                 onClick={() => approve(item.id)}
-                                                className="inline-flex items-center gap-1 text-xs font-medium text-green-700 hover:text-green-900"
+                                                className="inline-flex items-center gap-1 text-xs font-medium text-green-700 hover:text-green-900 dark:text-emerald-400 dark:hover:text-emerald-300"
                                             >
                                                 <CheckCircle className="h-4 w-4" /> Approve
                                             </button>
                                             <button
                                                 onClick={() => { setDeclining(item.id); setDeclineNote(''); }}
-                                                className="inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-800"
+                                                className="inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                                             >
                                                 <XCircle className="h-4 w-4" /> Decline
                                             </button>
@@ -103,7 +103,7 @@ export default function PortalJob({ job, token }: Props) {
                                 {declining === item.id && (
                                     <div className="mt-3 space-y-2">
                                         <textarea
-                                            className="w-full text-sm border border-gray-200 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                            className="w-full text-sm border border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:outline-none"
                                             rows={2}
                                             placeholder="Please explain why you're declining this item…"
                                             value={declineNote}
@@ -122,9 +122,9 @@ export default function PortalJob({ job, token }: Props) {
                             </div>
                         ))}
                     </div>
-                    <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between text-sm">
-                        <span className="font-medium text-gray-600">Total</span>
-                        <span className="font-semibold text-gray-900">£{total.toFixed(2)}</span>
+                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-800 flex justify-between text-sm">
+                        <span className="font-medium text-gray-600 dark:text-slate-400">Total</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">£{total.toFixed(2)}</span>
                     </div>
                 </div>
             )}

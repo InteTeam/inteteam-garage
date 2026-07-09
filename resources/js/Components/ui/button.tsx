@@ -8,13 +8,13 @@ const buttonVariants = cva(
     {
         variants: {
             variant: {
-                default: 'bg-gray-900 text-white hover:bg-gray-700',
-                destructive: 'bg-red-600 text-white hover:bg-red-700',
-                outline: 'border border-gray-300 bg-white hover:bg-gray-50 text-gray-900',
-                secondary: 'bg-gray-100 text-gray-900 hover:bg-gray-200',
-                ghost: 'hover:bg-gray-100 text-gray-900',
-                link: 'text-gray-900 underline-offset-4 hover:underline',
-                success: 'bg-green-600 text-white hover:bg-green-700',
+                default: 'bg-gray-900 text-white hover:bg-gray-700 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200',
+                destructive: 'bg-red-600 text-white hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-400',
+                outline: 'border border-gray-300 bg-white hover:bg-gray-50 text-gray-900 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-slate-100',
+                secondary: 'bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700',
+                ghost: 'hover:bg-gray-100 text-gray-900 dark:hover:bg-slate-800 dark:text-slate-100',
+                link: 'text-gray-900 underline-offset-4 hover:underline dark:text-slate-100',
+                success: 'bg-green-600 text-white hover:bg-green-700 dark:bg-emerald-500 dark:hover:bg-emerald-400',
             },
             size: {
                 default: 'h-9 px-4 py-2',

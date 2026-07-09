@@ -24,9 +24,9 @@ export function EstimatePanel({ jobId, estimate }: Props) {
     const canAddLineItems =
         !estimate.sent_at && !estimate.line_items.some((i) => i.status !== 'pending');
     return (
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 p-4">
             <div className="flex items-center justify-between mb-3">
-                <h2 className="font-medium text-gray-900 text-sm">Estimate #{estimate.revision_number}</h2>
+                <h2 className="font-medium text-gray-900 dark:text-white text-sm">Estimate #{estimate.revision_number}</h2>
                 {!estimate.sent_at && (
                     estimate.preview_confirmed_at ? (
                         <Button
@@ -47,21 +47,21 @@ export function EstimatePanel({ jobId, estimate }: Props) {
             </div>
             <table className="w-full text-sm">
                 <thead>
-                    <tr className="border-b border-gray-100">
-                        <th className="pb-2 text-left font-medium text-gray-600">Description</th>
-                        <th className="pb-2 text-right font-medium text-gray-600">Price</th>
-                        <th className="pb-2 text-right font-medium text-gray-600">Status</th>
+                    <tr className="border-b border-gray-100 dark:border-slate-800">
+                        <th className="pb-2 text-left font-medium text-gray-600 dark:text-slate-400">Description</th>
+                        <th className="pb-2 text-right font-medium text-gray-600 dark:text-slate-400">Price</th>
+                        <th className="pb-2 text-right font-medium text-gray-600 dark:text-slate-400">Status</th>
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
                     {estimate.line_items.map((item) => (
                         <tr key={item.id}>
-                            <td className="py-2 text-gray-800">{item.description}</td>
-                            <td className="py-2 text-right text-gray-800">£{Number(item.price).toFixed(2)}</td>
+                            <td className="py-2 text-gray-800 dark:text-slate-200">{item.description}</td>
+                            <td className="py-2 text-right text-gray-800 dark:text-slate-200">£{Number(item.price).toFixed(2)}</td>
                             <td className="py-2 text-right">
                                 <span className={`text-xs font-medium ${
-                                    item.status === 'approved' ? 'text-green-600' :
-                                    item.status === 'declined' ? 'text-red-600' : 'text-gray-500'
+                                    item.status === 'approved' ? 'text-green-600 dark:text-emerald-400' :
+                                    item.status === 'declined' ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-slate-400'
                                 }`}>
                                     {item.status}
                                 </span>
@@ -71,7 +71,7 @@ export function EstimatePanel({ jobId, estimate }: Props) {
                 </tbody>
                 <tfoot>
                     <tr>
-                        <td colSpan={2} className="pt-3 text-right text-sm font-semibold text-gray-900">
+                        <td colSpan={2} className="pt-3 text-right text-sm font-semibold text-gray-900 dark:text-white">
                             Total: £{total.toFixed(2)}
                         </td>
                     </tr>
@@ -96,7 +96,7 @@ function AddLineItemForm({ jobId, estimateId }: { jobId: string; estimateId: str
     }
 
     return (
-        <form onSubmit={submit} className="mt-4 pt-4 border-t border-gray-100 space-y-2">
+        <form onSubmit={submit} className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-800 space-y-2">
             <div className="flex flex-col sm:flex-row gap-2">
                 <input
                     type="text"
@@ -105,7 +105,7 @@ function AddLineItemForm({ jobId, estimateId }: { jobId: string; estimateId: str
                     placeholder="Line item description"
                     maxLength={500}
                     required
-                    className="text-sm border border-gray-300 rounded-md px-3 py-2 flex-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-sm border border-gray-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 rounded-md px-3 py-2 flex-1 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
                 />
                 <input
                     type="number"
@@ -115,7 +115,7 @@ function AddLineItemForm({ jobId, estimateId }: { jobId: string; estimateId: str
                     onChange={(e) => form.setData('price', e.target.value)}
                     placeholder="Price"
                     required
-                    className="text-sm border border-gray-300 rounded-md px-3 py-2 sm:w-28 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-sm border border-gray-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 rounded-md px-3 py-2 sm:w-28 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
                 />
                 <Button
                     type="submit"
@@ -127,7 +127,7 @@ function AddLineItemForm({ jobId, estimateId }: { jobId: string; estimateId: str
                 </Button>
             </div>
             {(form.errors.description || form.errors.price) && (
-                <p className="text-xs text-red-600">
+                <p className="text-xs text-red-600 dark:text-red-400">
                     {form.errors.description ?? form.errors.price}
                 </p>
             )}

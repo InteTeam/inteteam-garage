@@ -26,7 +26,7 @@ export default function PortalHandover({ job, token }: Props) {
         return (
             <PortalLayout title="Handover Complete" garageName={job.garage.name}>
                 <Head title="Handover" />
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-slate-400">
                     Handover submitted on {new Date(job.handover_inspection.submitted_at).toLocaleString('en-GB')}.
                 </p>
             </PortalLayout>
@@ -51,7 +51,7 @@ export default function PortalHandover({ job, token }: Props) {
     return (
         <PortalLayout title="Vehicle Handover" garageName={job.garage.name}>
             <Head title="Handover" />
-            <p className="text-sm text-gray-600 mb-5">
+            <p className="text-sm text-gray-600 dark:text-slate-400 mb-5">
                 Please check each item and confirm whether you accept the completed work.
                 Notes are required for any item you do not accept.
             </p>
@@ -60,11 +60,11 @@ export default function PortalHandover({ job, token }: Props) {
                 {lineItems.map((item) => {
                     const state = items[item.id];
                     return (
-                        <div key={item.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                        <div key={item.id} className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg p-4">
                             <div className="flex items-start justify-between gap-4">
                                 <div>
-                                    <p className="text-sm font-medium text-gray-900">{item.description}</p>
-                                    <p className="text-xs text-gray-500">£{Number(item.price).toFixed(2)}</p>
+                                    <p className="text-sm font-medium text-gray-900 dark:text-white">{item.description}</p>
+                                    <p className="text-xs text-gray-500 dark:text-slate-400">£{Number(item.price).toFixed(2)}</p>
                                 </div>
                                 <div className="flex gap-3 shrink-0">
                                     <label className="flex items-center gap-1.5 text-sm cursor-pointer">
@@ -72,24 +72,24 @@ export default function PortalHandover({ job, token }: Props) {
                                             type="radio"
                                             checked={state.accepted}
                                             onChange={() => setItems((p) => ({ ...p, [item.id]: { ...p[item.id], accepted: true } }))}
-                                            className="accent-green-600"
+                                            className="accent-green-600 dark:accent-emerald-400"
                                         />
-                                        <span className="text-green-700 font-medium">Accept</span>
+                                        <span className="text-green-700 dark:text-emerald-400 font-medium">Accept</span>
                                     </label>
                                     <label className="flex items-center gap-1.5 text-sm cursor-pointer">
                                         <input
                                             type="radio"
                                             checked={!state.accepted}
                                             onChange={() => setItems((p) => ({ ...p, [item.id]: { ...p[item.id], accepted: false } }))}
-                                            className="accent-red-600"
+                                            className="accent-red-600 dark:accent-red-400"
                                         />
-                                        <span className="text-red-700 font-medium">Query</span>
+                                        <span className="text-red-700 dark:text-red-400 font-medium">Query</span>
                                     </label>
                                 </div>
                             </div>
                             {!state.accepted && (
                                 <textarea
-                                    className="mt-3 w-full text-sm border border-gray-200 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="mt-3 w-full text-sm border border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
                                     rows={2}
                                     placeholder="Describe the issue…"
                                     value={state.notes}

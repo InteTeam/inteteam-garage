@@ -25,15 +25,15 @@ interface Props {
 
 export function StageNotesEditor({ jobId, stages, availableToAdd }: Props) {
     return (
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 p-4">
             <div className="flex items-center justify-between mb-3">
-                <h2 className="font-medium text-gray-900 text-sm">Stage Notes</h2>
+                <h2 className="font-medium text-gray-900 dark:text-white text-sm">Stage Notes</h2>
                 {availableToAdd.length > 0 && (
                     <AddStageControl jobId={jobId} availableToAdd={availableToAdd} />
                 )}
             </div>
             {stages.length === 0 ? (
-                <p className="text-sm text-gray-400">No stages defined yet — add one to start logging notes.</p>
+                <p className="text-sm text-gray-400 dark:text-slate-500">No stages defined yet — add one to start logging notes.</p>
             ) : (
                 <ul className="space-y-4">
                     {stages.map((stage) => (
@@ -73,7 +73,7 @@ function AddStageControl({ jobId, availableToAdd }: { jobId: string; availableTo
             <select
                 value={pick}
                 onChange={(e) => setPick(e.target.value)}
-                className="text-xs border border-gray-300 rounded-md px-2 py-1 bg-white"
+                className="text-xs border border-gray-300 dark:border-slate-700 rounded-md px-2 py-1 bg-white dark:bg-slate-900 dark:text-slate-100"
                 disabled={adding}
             >
                 {availableToAdd.map((n) => (
@@ -108,15 +108,15 @@ function StageRow({ jobId, stage }: { jobId: string; stage: JobStage }) {
         <form onSubmit={submit} className="space-y-2">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-800">{stage.name}</span>
+                    <span className="text-sm font-medium text-gray-800 dark:text-slate-200">{stage.name}</span>
                     {locked && (
-                        <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+                        <span className="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-slate-400">
                             <Lock className="h-3 w-3" /> locked
                         </span>
                     )}
                 </div>
                 {wasTranslated && (
-                    <span className="inline-flex items-center gap-1 text-xs text-blue-700">
+                    <span className="inline-flex items-center gap-1 text-xs text-blue-700 dark:text-blue-400">
                         <Languages className="h-3 w-3" />
                         Auto-translated {stage.notes_source_locale}→{stage.notes_target_locale}
                     </span>
@@ -128,7 +128,7 @@ function StageRow({ jobId, stage }: { jobId: string; stage: JobStage }) {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Write notes in your working language. Customer will see an auto-translated copy."
-                className="text-sm border border-gray-300 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400"
+                className="text-sm border border-gray-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 disabled:bg-gray-50 dark:disabled:bg-slate-800 disabled:text-gray-400 dark:disabled:text-slate-500"
             />
             {!locked && (
                 <div className="flex justify-end">
