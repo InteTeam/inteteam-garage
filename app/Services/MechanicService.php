@@ -38,20 +38,15 @@ final class MechanicService
     }
 
     /**
-     * Users that don't yet have a Mechanic record in the current garage.
-     * A user with a Mechanic elsewhere still shows up here — one person
-     * can staff multiple garages.
+     * Users that don't yet have a Mechanic record in any garage.
+     * Surfaced in the mechanic-create picker.
      *
      * @return Collection<int, User>
      */
     public function listUnassignedUsers(): Collection
     {
-        $currentGarageId = session('current_garage_id');
-
         return User::query()
-            ->whereDoesntHave('mechanic', fn ($q) => $q
-                ->withoutGlobalScopes()
-                ->where('garage_id', $currentGarageId))
+            ->whereDoesntHave('mechanic', fn ($q) => $q->withoutGlobalScopes())
             ->orderBy('name')
             ->get(['id', 'name', 'email']);
     }
