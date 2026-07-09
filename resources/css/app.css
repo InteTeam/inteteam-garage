@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Enable class-based dark mode (Tailwind v4 syntax).
+   Toggling `<html class="dark">` flips every `dark:` variant. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 html { scroll-behavior: smooth; }
 
 @keyframes home-fade-up {

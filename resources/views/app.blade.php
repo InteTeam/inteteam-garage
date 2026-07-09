@@ -13,12 +13,25 @@
         <link rel="icon" type="image/png" sizes="192x192" href="{{ asset('pwa-192x192.png') }}">
         <link rel="icon" type="image/png" sizes="512x512" href="{{ asset('pwa-512x512.png') }}">
         <title inertia>{{ config('app.name', 'InteTeam Garage') }}</title>
+        {{-- Set the theme class before the CSS + React load, to prevent a
+             flash of light UI on dark-mode users. Reads localStorage first,
+             falls back to system preference. Mirror this logic in useTheme. --}}
+        <script>
+            (function() {
+                try {
+                    var stored = localStorage.getItem('theme');
+                    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    var isDark = stored ? stored === 'dark' : prefersDark;
+                    if (isDark) document.documentElement.classList.add('dark');
+                } catch (e) { /* localStorage blocked (e.g. private mode) — ignore */ }
+            })();
+        </script>
         @routes
         @viteReactRefresh
         @vite(['resources/css/app.css', 'resources/js/app.tsx'])
         @inertiaHead
     </head>
-    <body class="antialiased bg-background text-foreground">
+    <body class="antialiased bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100">
         @inertia
     </body>
 </html>
