@@ -35,15 +35,15 @@ function statusClass(status: string | undefined): string {
         case 'paid':
         case 'completed':
         case 'confirmed':
-            return 'bg-emerald-100 text-emerald-700';
+            return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300';
         case 'pending':
         case 'awaiting_payment':
-            return 'bg-amber-100 text-amber-700';
+            return 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300';
         case 'failed':
         case 'cancelled':
-            return 'bg-red-100 text-red-700';
+            return 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300';
         default:
-            return 'bg-gray-100 text-gray-600';
+            return 'bg-gray-100 text-gray-600 dark:bg-slate-800 dark:text-slate-400';
     }
 }
 
@@ -53,36 +53,36 @@ export default function CustomerTransactions({ transactions, linked }: Props) {
             <Head title="Transactions" />
 
             {!linked && (
-                <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
-                    <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
-                    <p className="text-sm text-amber-900">
+                <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 rounded-lg flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-amber-500 dark:text-amber-400 mt-0.5 shrink-0" />
+                    <p className="text-sm text-amber-900 dark:text-amber-200">
                         Your account isn&apos;t linked to a CRM customer yet, so no transactions are available.
                     </p>
                 </div>
             )}
 
             {linked && transactions.length === 0 && (
-                <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-                    <CreditCard className="h-8 w-8 text-gray-300 mx-auto mb-3" />
-                    <p className="text-sm text-gray-500">No transactions yet.</p>
+                <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 p-8 text-center">
+                    <CreditCard className="h-8 w-8 text-gray-300 dark:text-slate-600 mx-auto mb-3" />
+                    <p className="text-sm text-gray-500 dark:text-slate-400">No transactions yet.</p>
                 </div>
             )}
 
             {transactions.length > 0 && (
-                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 overflow-hidden">
                     <table className="w-full text-sm">
-                        <thead className="bg-gray-50 border-b border-gray-200">
+                        <thead className="bg-gray-50 dark:bg-slate-800/40 border-b border-gray-200 dark:border-slate-800">
                             <tr>
-                                <th className="px-4 py-2.5 text-left font-medium text-gray-600">Reference</th>
-                                <th className="px-4 py-2.5 text-left font-medium text-gray-600">Status</th>
-                                <th className="px-4 py-2.5 text-right font-medium text-gray-600">Amount</th>
-                                <th className="px-4 py-2.5 text-right font-medium text-gray-600">Date</th>
+                                <th className="px-4 py-2.5 text-left font-medium text-gray-600 dark:text-slate-400">Reference</th>
+                                <th className="px-4 py-2.5 text-left font-medium text-gray-600 dark:text-slate-400">Status</th>
+                                <th className="px-4 py-2.5 text-right font-medium text-gray-600 dark:text-slate-400">Amount</th>
+                                <th className="px-4 py-2.5 text-right font-medium text-gray-600 dark:text-slate-400">Date</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
                             {transactions.map((t, idx) => (
-                                <tr key={t.id ?? t.reference ?? idx} className="hover:bg-gray-50">
-                                    <td className="px-4 py-3 font-mono text-xs text-gray-700">
+                                <tr key={t.id ?? t.reference ?? idx} className="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                                    <td className="px-4 py-3 font-mono text-xs text-gray-700 dark:text-slate-300">
                                         {t.reference ?? '—'}
                                     </td>
                                     <td className="px-4 py-3">
@@ -90,10 +90,10 @@ export default function CustomerTransactions({ transactions, linked }: Props) {
                                             {(t.status ?? 'unknown').replace(/_/g, ' ')}
                                         </span>
                                     </td>
-                                    <td className="px-4 py-3 text-right font-medium text-gray-900">
+                                    <td className="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">
                                         {fmtAmount(t.total, t.currency)}
                                     </td>
-                                    <td className="px-4 py-3 text-right text-xs text-gray-500">
+                                    <td className="px-4 py-3 text-right text-xs text-gray-500 dark:text-slate-400">
                                         {t.paid_at
                                             ? new Date(t.paid_at).toLocaleDateString()
                                             : t.created_at

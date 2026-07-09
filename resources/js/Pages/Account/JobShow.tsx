@@ -86,38 +86,38 @@ export default function CustomerJobShow({ job }: Props) {
             <Head title={`Job · ${job.vehicle.registration}`} />
 
             <div className="mb-4">
-                <Link href="/account" className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700">
+                <Link href="/account" className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200">
                     <ArrowLeft className="h-3.5 w-3.5" /> Back
                 </Link>
             </div>
 
             <div className="mb-5 flex flex-wrap items-center gap-3">
-                <span className="font-medium text-gray-900">
+                <span className="font-medium text-gray-900 dark:text-white">
                     {job.vehicle.registration} · {job.vehicle.make} {job.vehicle.model}
                 </span>
                 <JobStateBadge state={job.state} />
-                <span className="text-xs text-gray-500 ml-auto">{job.garage.name}</span>
+                <span className="text-xs text-gray-500 dark:text-slate-400 ml-auto">{job.garage.name}</span>
             </div>
 
             {job.current_estimate && (
-                <section className="bg-white rounded-lg border border-gray-200 p-5 mb-6">
-                    <h2 className="font-semibold text-gray-900 mb-4">
+                <section className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 p-5 mb-6">
+                    <h2 className="font-semibold text-gray-900 dark:text-white mb-4">
                         Estimate #{job.current_estimate.revision_number}
                     </h2>
                     <div className="space-y-3">
                         {lineItems.map((item) => (
-                            <div key={item.id} className="border border-gray-100 rounded-md p-3">
+                            <div key={item.id} className="border border-gray-100 dark:border-slate-800 rounded-md p-3">
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="flex-1">
-                                        <p className="text-sm font-medium text-gray-900">{item.description}</p>
-                                        <p className="text-sm text-gray-500">£{Number(item.price).toFixed(2)}</p>
+                                        <p className="text-sm font-medium text-gray-900 dark:text-white">{item.description}</p>
+                                        <p className="text-sm text-gray-500 dark:text-slate-400">£{Number(item.price).toFixed(2)}</p>
                                     </div>
                                     {item.status !== 'pending' ? (
                                         <span
                                             className={`text-xs font-semibold px-2 py-1 rounded-full ${
                                                 item.status === 'approved'
-                                                    ? 'bg-green-100 text-green-700'
-                                                    : 'bg-red-100 text-red-700'
+                                                    ? 'bg-green-100 text-green-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                                                    : 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300'
                                             }`}
                                         >
                                             {item.status}
@@ -126,19 +126,19 @@ export default function CustomerJobShow({ job }: Props) {
                                         <div className="flex flex-wrap gap-2 shrink-0">
                                             <button
                                                 onClick={() => approve(item.id)}
-                                                className="inline-flex items-center gap-1 text-xs font-medium text-green-700 hover:text-green-900"
+                                                className="inline-flex items-center gap-1 text-xs font-medium text-green-700 hover:text-green-900 dark:text-emerald-400 dark:hover:text-emerald-300"
                                             >
                                                 <CheckCircle className="h-4 w-4" /> Approve
                                             </button>
                                             <button
                                                 onClick={() => { setDeclining(item.id); setQuestioning(null); setNote(''); }}
-                                                className="inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-800"
+                                                className="inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                                             >
                                                 <XCircle className="h-4 w-4" /> Decline
                                             </button>
                                             <button
                                                 onClick={() => { setQuestioning(item.id); setDeclining(null); setNote(''); }}
-                                                className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800"
+                                                className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                                             >
                                                 <MessageCircle className="h-4 w-4" /> Question
                                             </button>
@@ -171,23 +171,23 @@ export default function CustomerJobShow({ job }: Props) {
                             </div>
                         ))}
                     </div>
-                    <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between text-sm">
-                        <span className="font-medium text-gray-600">Total</span>
-                        <span className="font-semibold text-gray-900">£{total.toFixed(2)}</span>
+                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-800 flex justify-between text-sm">
+                        <span className="font-medium text-gray-600 dark:text-slate-400">Total</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">£{total.toFixed(2)}</span>
                     </div>
                 </section>
             )}
 
             {job.stages.length > 0 && (
-                <section className="bg-white rounded-lg border border-gray-200 p-5 mb-6">
-                    <h2 className="font-semibold text-gray-900 mb-4">Progress</h2>
+                <section className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 p-5 mb-6">
+                    <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Progress</h2>
                     <ol className="space-y-3">
                         {job.stages.map((stage) => (
-                            <li key={stage.id} className="border-l-2 border-gray-200 pl-4 py-1">
+                            <li key={stage.id} className="border-l-2 border-gray-200 dark:border-slate-700 pl-4 py-1">
                                 <div className="flex items-center gap-2">
-                                    <span className="font-medium text-gray-900 text-sm capitalize">{stage.name.replace(/-/g, ' ')}</span>
+                                    <span className="font-medium text-gray-900 dark:text-white text-sm capitalize">{stage.name.replace(/-/g, ' ')}</span>
                                 </div>
-                                {stage.notes && <p className="text-xs text-gray-600 mt-1">{stage.notes}</p>}
+                                {stage.notes && <p className="text-xs text-gray-600 dark:text-slate-400 mt-1">{stage.notes}</p>}
                                 {stage.media.length > 0 && (
                                     <div className="mt-2 flex flex-wrap gap-2">
                                         {stage.media.map((m) =>
@@ -203,10 +203,10 @@ export default function CustomerJobShow({ job }: Props) {
                                                         <img
                                                             src={m.url}
                                                             alt=""
-                                                            className="h-20 w-20 object-cover rounded border border-gray-200"
+                                                            className="h-20 w-20 object-cover rounded border border-gray-200 dark:border-slate-700"
                                                         />
                                                     ) : (
-                                                        <span className="text-xs text-blue-600 underline">View attachment</span>
+                                                        <span className="text-xs text-blue-600 dark:text-blue-400 underline">View attachment</span>
                                                     )}
                                                 </a>
                                             ) : null,
@@ -220,14 +220,14 @@ export default function CustomerJobShow({ job }: Props) {
             )}
 
             {job.state_transitions.length > 0 && (
-                <details className="bg-white rounded-lg border border-gray-200 p-4">
-                    <summary className="text-sm font-medium text-gray-700 cursor-pointer">
+                <details className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 p-4">
+                    <summary className="text-sm font-medium text-gray-700 dark:text-slate-300 cursor-pointer">
                         Timeline ({job.state_transitions.length})
                     </summary>
-                    <ul className="mt-3 space-y-1.5 text-xs text-gray-600">
+                    <ul className="mt-3 space-y-1.5 text-xs text-gray-600 dark:text-slate-400">
                         {job.state_transitions.map((t) => (
                             <li key={t.id} className="flex items-center gap-2">
-                                <span className="text-gray-400">{new Date(t.created_at).toLocaleString()}</span>
+                                <span className="text-gray-400 dark:text-slate-500">{new Date(t.created_at).toLocaleString()}</span>
                                 <span>
                                     {t.from_state ? `${t.from_state.replace(/_/g, ' ')} → ` : ''}
                                     <span className="font-medium">{t.to_state.replace(/_/g, ' ')}</span>
@@ -255,7 +255,7 @@ function NoteForm({ placeholder, value, onChange, onSubmit, onCancel, submitLabe
     return (
         <div className="mt-3 space-y-2">
             <textarea
-                className="w-full text-sm border border-gray-200 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full text-sm border border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:outline-none"
                 rows={2}
                 placeholder={placeholder}
                 value={value}
