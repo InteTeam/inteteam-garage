@@ -7,10 +7,10 @@ interface Vehicle { id: string; registration: string; make: string; model: strin
 interface Mechanic { id: string; name: string; role: string }
 interface Props { vehicles?: Vehicle[]; mechanics?: Mechanic[] }
 
-const field = 'text-sm border border-gray-300 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500';
-const label = 'block text-sm font-medium text-gray-700 mb-1';
-const err = 'text-xs text-red-600 mt-1';
-const hint = 'text-xs text-gray-500 mt-1';
+const field = 'text-sm border border-gray-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400';
+const label = 'block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1';
+const err = 'text-xs text-red-600 dark:text-red-400 mt-1';
+const hint = 'text-xs text-gray-500 dark:text-slate-400 mt-1';
 
 export default function JobCreate({ vehicles = [], mechanics = [] }: Props) {
     const { data, setData, post, processing, errors } = useForm<{
@@ -38,7 +38,7 @@ export default function JobCreate({ vehicles = [], mechanics = [] }: Props) {
     return (
         <GarageLayout title="New Job">
             <Head title="New Job" />
-            <div className="max-w-md bg-white rounded-lg border border-gray-200 p-6">
+            <div className="max-w-md bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 p-6">
                 <form onSubmit={submit} className="space-y-5">
                     <div>
                         <label htmlFor="vehicle_id" className={label}>
@@ -66,17 +66,17 @@ export default function JobCreate({ vehicles = [], mechanics = [] }: Props) {
                         {mechanics.length === 0 ? (
                             <p className={hint}>No active mechanics in this garage — add one before creating a job.</p>
                         ) : (
-                            <div className="space-y-2 border border-gray-200 rounded-md p-3">
+                            <div className="space-y-2 border border-gray-200 dark:border-slate-700 rounded-md p-3">
                                 {mechanics.map((m) => (
                                     <label key={m.id} className="flex items-center gap-2 cursor-pointer text-sm">
                                         <input
                                             type="checkbox"
-                                            className="rounded border-gray-300"
+                                            className="rounded border-gray-300 dark:border-slate-700 dark:bg-slate-900"
                                             checked={data.mechanic_ids.includes(m.id)}
                                             onChange={() => toggleMechanic(m.id)}
                                         />
-                                        <span className="text-gray-900">{m.name}</span>
-                                        <span className="text-xs text-gray-500">{m.role === 'garage_admin' ? 'Admin' : 'Mechanic'}</span>
+                                        <span className="text-gray-900 dark:text-white">{m.name}</span>
+                                        <span className="text-xs text-gray-500 dark:text-slate-400">{m.role === 'garage_admin' ? 'Admin' : 'Mechanic'}</span>
                                     </label>
                                 ))}
                             </div>

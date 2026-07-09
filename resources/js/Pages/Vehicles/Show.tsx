@@ -34,8 +34,8 @@ interface Props {
     dvlaEnabled: boolean;
 }
 
-const labelClass = 'text-xs uppercase tracking-wide text-gray-500 font-medium';
-const valueClass = 'text-sm text-gray-900 mt-0.5';
+const labelClass = 'text-xs uppercase tracking-wide text-gray-500 dark:text-slate-400 font-medium';
+const valueClass = 'text-sm text-gray-900 dark:text-white mt-0.5';
 
 function formatDate(iso: string): string {
     return new Date(iso).toLocaleDateString('en-GB');
@@ -48,9 +48,9 @@ function daysUntil(iso: string): number {
 }
 
 function statusColour(days: number): string {
-    if (days < 0) return 'text-red-600';
-    if (days <= 30) return 'text-amber-600';
-    return 'text-emerald-600';
+    if (days < 0) return 'text-red-600 dark:text-red-400';
+    if (days <= 30) return 'text-amber-600 dark:text-amber-400';
+    return 'text-emerald-600 dark:text-emerald-400';
 }
 
 function statusLabel(days: number): string {
@@ -74,7 +74,7 @@ export default function VehicleShow({ vehicle, compliance, complianceHistory, dv
             </div>
 
             <div className="max-w-lg">
-                <div className="flex gap-1 border-b border-gray-200 mb-4" role="tablist">
+                <div className="flex gap-1 border-b border-gray-200 dark:border-slate-800 mb-4" role="tablist">
                     {(['details', 'compliance'] as const).map((t) => (
                         <button
                             key={t}
@@ -85,8 +85,8 @@ export default function VehicleShow({ vehicle, compliance, complianceHistory, dv
                             className={
                                 'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ' +
                                 (tab === t
-                                    ? 'border-blue-600 text-blue-600'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700')
+                                    ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200')
                             }
                         >
                             {t === 'details' ? 'Details' : 'Compliance'}
@@ -95,7 +95,7 @@ export default function VehicleShow({ vehicle, compliance, complianceHistory, dv
                 </div>
 
                 {tab === 'details' && (
-                    <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 p-6 space-y-4">
                         <div>
                             <p className={labelClass}>Registration</p>
                             <p className={valueClass}>{vehicle.registration}</p>
@@ -168,10 +168,10 @@ function ComplianceTab({ vehicleId, compliance, history, dvlaEnabled }: Complian
     return (
         <div className="space-y-3">
             {dvlaEnabled && (
-                <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+                <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 rounded-lg px-4 py-3">
                     <div>
-                        <p className="text-sm font-medium text-blue-900">DVLA auto-fill</p>
-                        <p className="text-xs text-blue-700">Pulls latest MOT &amp; Road Tax expiry for this registration.</p>
+                        <p className="text-sm font-medium text-blue-900 dark:text-blue-200">DVLA auto-fill</p>
+                        <p className="text-xs text-blue-700 dark:text-blue-300">Pulls latest MOT &amp; Road Tax expiry for this registration.</p>
                     </div>
                     <Button
                         size="sm"
@@ -207,9 +207,9 @@ function ComplianceCard({ type, record, vehicleId }: ComplianceCardProps) {
     const [editing, setEditing] = useState(false);
 
     return (
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 p-4">
             <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-semibold text-gray-900">{COMPLIANCE_LABELS[type]}</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">{COMPLIANCE_LABELS[type]}</p>
                 {!editing && (
                     <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
                         {record ? 'Update' : 'Set date'}
@@ -219,16 +219,16 @@ function ComplianceCard({ type, record, vehicleId }: ComplianceCardProps) {
 
             {!editing && record && (
                 <div className="space-y-1">
-                    <p className="text-lg text-gray-900">{formatDate(record.expires_on)}</p>
+                    <p className="text-lg text-gray-900 dark:text-white">{formatDate(record.expires_on)}</p>
                     <p className={'text-xs font-medium ' + statusColour(daysUntil(record.expires_on))}>
                         {statusLabel(daysUntil(record.expires_on))}
                     </p>
-                    {record.note && <p className="text-xs text-gray-500 italic mt-1">{record.note}</p>}
+                    {record.note && <p className="text-xs text-gray-500 dark:text-slate-400 italic mt-1">{record.note}</p>}
                 </div>
             )}
 
             {!editing && !record && (
-                <p className="text-sm text-gray-400">No date recorded yet.</p>
+                <p className="text-sm text-gray-400 dark:text-slate-500">No date recorded yet.</p>
             )}
 
             {editing && (
@@ -273,32 +273,32 @@ function ComplianceForm({ type, vehicleId, defaultDate, onCancel, onSaved }: Com
     return (
         <form onSubmit={submit} className="space-y-3 mt-2">
             <div>
-                <label htmlFor={`${type}-expires`} className="block text-xs font-medium text-gray-700 mb-1">
+                <label htmlFor={`${type}-expires`} className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
                     Expires on
                 </label>
                 <input
                     id={`${type}-expires`}
                     type="date"
-                    className="text-sm border border-gray-300 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-sm border border-gray-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
                     value={data.expires_on}
                     onChange={(e) => setData('expires_on', e.target.value)}
                     required
                 />
-                {errors.expires_on && <p className="text-xs text-red-600 mt-1">{errors.expires_on}</p>}
+                {errors.expires_on && <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.expires_on}</p>}
             </div>
             <div>
-                <label htmlFor={`${type}-note`} className="block text-xs font-medium text-gray-700 mb-1">
-                    Note <span className="text-gray-400">(optional)</span>
+                <label htmlFor={`${type}-note`} className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
+                    Note <span className="text-gray-400 dark:text-slate-500">(optional)</span>
                 </label>
                 <input
                     id={`${type}-note`}
                     type="text"
                     maxLength={500}
-                    className="text-sm border border-gray-300 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="text-sm border border-gray-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
                     value={data.note}
                     onChange={(e) => setData('note', e.target.value)}
                 />
-                {errors.note && <p className="text-xs text-red-600 mt-1">{errors.note}</p>}
+                {errors.note && <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.note}</p>}
             </div>
             <div className="flex gap-2 justify-end">
                 <Button type="button" size="sm" variant="outline" onClick={onCancel} disabled={processing}>
@@ -316,29 +316,29 @@ function HistoryList({ history }: { history: ComplianceRecord[] }) {
     const [open, setOpen] = useState(false);
 
     return (
-        <div className="bg-white rounded-lg border border-gray-200">
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800">
             <button
                 type="button"
                 onClick={() => setOpen(!open)}
-                className="w-full px-4 py-3 text-left text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="w-full px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800/40"
             >
                 {open ? '▾' : '▸'} History ({history.length})
             </button>
             {open && (
-                <ul className="divide-y divide-gray-100 border-t border-gray-200">
+                <ul className="divide-y divide-gray-100 dark:divide-slate-800 border-t border-gray-200 dark:border-slate-800">
                     {history.map((r) => (
-                        <li key={r.id} className="px-4 py-2 text-xs text-gray-600 flex justify-between">
+                        <li key={r.id} className="px-4 py-2 text-xs text-gray-600 dark:text-slate-400 flex justify-between">
                             <span>
-                                <span className="font-medium text-gray-900">{COMPLIANCE_LABELS[r.type]}</span>
+                                <span className="font-medium text-gray-900 dark:text-white">{COMPLIANCE_LABELS[r.type]}</span>
                                 {' · '}
                                 {formatDate(r.expires_on)}
                                 {r.source !== 'manual' && (
-                                    <span className="ml-2 px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded uppercase">
+                                    <span className="ml-2 px-1.5 py-0.5 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 rounded uppercase">
                                         {r.source}
                                     </span>
                                 )}
                             </span>
-                            <span className="text-gray-400">
+                            <span className="text-gray-400 dark:text-slate-500">
                                 {formatDate(r.created_at)}
                                 {r.recorded_by && ` · ${r.recorded_by.name}`}
                             </span>
