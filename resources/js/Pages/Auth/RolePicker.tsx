@@ -14,9 +14,6 @@ export default function RolePicker({ mechanicLoginUrl, customerLoginUrl }: Props
             <div className="w-full max-w-lg">
                 <div className="text-center mb-8">
                     <h1 className="text-2xl font-semibold text-slate-900">How do you want to sign in?</h1>
-                    <p className="mt-2 text-sm text-slate-600">
-                        Both roles use your Inte.Team SSO account.
-                    </p>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -52,10 +49,6 @@ export default function RolePicker({ mechanicLoginUrl, customerLoginUrl }: Props
                         </span>
                     </a>
                 </div>
-
-                <p className="text-center text-xs text-slate-400 mt-6">
-                    inteteam-garage · sign in
-                </p>
             </div>
         </div>
     );
