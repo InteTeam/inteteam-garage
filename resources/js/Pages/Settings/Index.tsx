@@ -84,9 +84,9 @@ export default function SettingsIndex({ garage }: Props) {
                             type="text"
                             value={data.name}
                             onChange={(e) => setData('name', e.target.value)}
-                            className="w-full border rounded px-3 py-2"
+                            className="w-full border border-gray-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
                         />
-                        {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+                        {errors.name && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.name}</p>}
                     </div>
 
                     <div>
@@ -94,14 +94,14 @@ export default function SettingsIndex({ garage }: Props) {
                         <select
                             value={data.default_notification_channel}
                             onChange={(e) => setData('default_notification_channel', e.target.value as Channel)}
-                            className="w-full border rounded px-3 py-2"
+                            className="w-full border border-gray-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
                         >
                             <option value="email">Email</option>
                             <option value="sms">SMS</option>
                             <option value="in_app">In-App</option>
                         </select>
                         {errors.default_notification_channel && (
-                            <p className="text-red-500 text-sm mt-1">{errors.default_notification_channel}</p>
+                            <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.default_notification_channel}</p>
                         )}
                     </div>
 
@@ -110,12 +110,12 @@ export default function SettingsIndex({ garage }: Props) {
                         <select
                             value={data.locale}
                             onChange={(e) => setData('locale', e.target.value)}
-                            className="w-full border rounded px-3 py-2"
+                            className="w-full border border-gray-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
                         >
                             <option value="en">English</option>
                             <option value="pl">Polish</option>
                         </select>
-                        {errors.locale && <p className="text-red-500 text-sm mt-1">{errors.locale}</p>}
+                        {errors.locale && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.locale}</p>}
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -131,12 +131,12 @@ export default function SettingsIndex({ garage }: Props) {
                         </label>
                     </div>
 
-                    <hr className="border-gray-200" />
+                    <hr className="border-gray-200 dark:border-slate-800" />
 
                     <div className="space-y-4">
                         <div>
                             <h2 className="text-lg font-semibold">Compliance Reminders</h2>
-                            <p className="text-xs text-gray-500">Automatic notifications when a vehicle's MOT, Road Tax, or Insurance is approaching expiry.</p>
+                            <p className="text-xs text-gray-500 dark:text-slate-400">Automatic notifications when a vehicle's MOT, Road Tax, or Insurance is approaching expiry.</p>
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -152,17 +152,17 @@ export default function SettingsIndex({ garage }: Props) {
                             </label>
                         </div>
                         {errors.compliance_reminders_enabled && (
-                            <p className="text-red-500 text-sm mt-1">{errors.compliance_reminders_enabled}</p>
+                            <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.compliance_reminders_enabled}</p>
                         )}
 
                         {data.compliance_reminders_enabled && (
-                            <div className="space-y-4 pl-6 border-l-2 border-blue-200">
+                            <div className="space-y-4 pl-6 border-l-2 border-blue-200 dark:border-blue-900/60">
                                 <div>
                                     <label className="block text-sm font-medium mb-1">Channel</label>
                                     <select
                                         value={data.compliance_reminders_channel}
                                         onChange={(e) => setData('compliance_reminders_channel', e.target.value as Channel | '')}
-                                        className="w-full border rounded px-3 py-2"
+                                        className="w-full border border-gray-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
                                     >
                                         <option value="">Use garage default ({data.default_notification_channel})</option>
                                         <option value="email">Email</option>
@@ -170,7 +170,7 @@ export default function SettingsIndex({ garage }: Props) {
                                         <option value="in_app">In-App</option>
                                     </select>
                                     {errors.compliance_reminders_channel && (
-                                        <p className="text-red-500 text-sm mt-1">{errors.compliance_reminders_channel}</p>
+                                        <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.compliance_reminders_channel}</p>
                                     )}
                                 </div>
 
@@ -190,10 +190,10 @@ export default function SettingsIndex({ garage }: Props) {
                                         ))}
                                     </div>
                                     {data.compliance_reminders_windows.length === 0 && (
-                                        <p className="text-amber-600 text-xs mt-1">Pick at least one window.</p>
+                                        <p className="text-amber-600 dark:text-amber-400 text-xs mt-1">Pick at least one window.</p>
                                     )}
                                     {errors.compliance_reminders_windows && (
-                                        <p className="text-red-500 text-sm mt-1">{errors.compliance_reminders_windows}</p>
+                                        <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.compliance_reminders_windows}</p>
                                     )}
                                 </div>
 
@@ -213,10 +213,10 @@ export default function SettingsIndex({ garage }: Props) {
                                         ))}
                                     </div>
                                     {data.compliance_reminders_types.length === 0 && (
-                                        <p className="text-amber-600 text-xs mt-1">Pick at least one type.</p>
+                                        <p className="text-amber-600 dark:text-amber-400 text-xs mt-1">Pick at least one type.</p>
                                     )}
                                     {errors.compliance_reminders_types && (
-                                        <p className="text-red-500 text-sm mt-1">{errors.compliance_reminders_types}</p>
+                                        <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.compliance_reminders_types}</p>
                                     )}
                                 </div>
 
@@ -225,14 +225,14 @@ export default function SettingsIndex({ garage }: Props) {
                                     <select
                                         value={data.compliance_reminders_recipient}
                                         onChange={(e) => setData('compliance_reminders_recipient', e.target.value as Recipient)}
-                                        className="w-full border rounded px-3 py-2"
+                                        className="w-full border border-gray-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
                                     >
                                         <option value="customer">Customer only</option>
                                         <option value="customer_and_mechanic">Customer and mechanic admin</option>
                                         <option value="mechanic">Mechanic admin only</option>
                                     </select>
                                     {errors.compliance_reminders_recipient && (
-                                        <p className="text-red-500 text-sm mt-1">{errors.compliance_reminders_recipient}</p>
+                                        <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.compliance_reminders_recipient}</p>
                                     )}
                                 </div>
                             </div>
@@ -247,7 +247,7 @@ export default function SettingsIndex({ garage }: Props) {
                                 (data.compliance_reminders_windows.length === 0 ||
                                     data.compliance_reminders_types.length === 0))
                         }
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+                        className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400 text-white px-4 py-2 rounded disabled:opacity-50"
                     >
                         Save Settings
                     </button>

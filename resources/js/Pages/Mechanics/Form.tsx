@@ -18,10 +18,10 @@ interface Props {
     availableUsers?: AvailableUser[];
 }
 
-const field = 'text-sm border border-gray-300 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500';
-const label = 'block text-sm font-medium text-gray-700 mb-1';
-const err = 'text-xs text-red-600 mt-1';
-const help = 'text-xs text-gray-500 mt-1';
+const field = 'text-sm border border-gray-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400';
+const label = 'block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1';
+const err = 'text-xs text-red-600 dark:text-red-400 mt-1';
+const help = 'text-xs text-gray-500 dark:text-slate-400 mt-1';
 
 export default function MechanicForm({ mechanic, locales, availableUsers = [] }: Props) {
     const isEdit = mechanic !== null && mechanic !== undefined;
@@ -42,13 +42,13 @@ export default function MechanicForm({ mechanic, locales, availableUsers = [] }:
     return (
         <GarageLayout title={isEdit ? 'Edit Mechanic' : 'Add Mechanic'}>
             <Head title={isEdit ? 'Edit Mechanic' : 'Add Mechanic'} />
-            <div className="max-w-md bg-white rounded-lg border border-gray-200 p-6">
+            <div className="max-w-md bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 p-6">
                 <form onSubmit={submit} className="space-y-4">
                     {!isEdit && (
                         <div>
                             <label htmlFor="user_id" className={label}>SSO user</label>
                             {availableUsers.length === 0 ? (
-                                <p className="text-sm text-amber-700">
+                                <p className="text-sm text-amber-700 dark:text-amber-400">
                                     No unassigned users — every existing user already has a Mechanic record.
                                 </p>
                             ) : (
@@ -99,7 +99,7 @@ export default function MechanicForm({ mechanic, locales, availableUsers = [] }:
                             onChange={(e) => setData('channel_toggle_allowed', e.target.checked)}
                         />
                         <div>
-                            <label htmlFor="channel_toggle_allowed" className="text-sm font-medium text-gray-700">
+                            <label htmlFor="channel_toggle_allowed" className="text-sm font-medium text-gray-700 dark:text-slate-300">
                                 Allow this mechanic to opt out of email/SMS alerts
                             </label>
                             <p className={help}>In-app dashboard alerts are always on. Leave unchecked to lock all channels for safety-critical work.</p>
@@ -107,7 +107,7 @@ export default function MechanicForm({ mechanic, locales, availableUsers = [] }:
                     </div>
                     <div className="flex items-center gap-2">
                         <input id="is_active" type="checkbox" checked={data.is_active} onChange={(e) => setData('is_active', e.target.checked)} />
-                        <label htmlFor="is_active" className="text-sm font-medium text-gray-700">Active</label>
+                        <label htmlFor="is_active" className="text-sm font-medium text-gray-700 dark:text-slate-300">Active</label>
                     </div>
                     <div className="flex justify-end pt-2">
                         <Button
