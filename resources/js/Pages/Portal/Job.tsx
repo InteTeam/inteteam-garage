@@ -2,7 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import PortalLayout from '@/Layouts/PortalLayout';
 import { JobStateBadge } from '@/Components/JobStateBadge';
 import { Button } from '@/Components/ui/button';
-import { CheckCircle, XCircle, MessageCircle } from 'lucide-react';
+import { CheckCircle, XCircle } from 'lucide-react';
 import { useState } from 'react';
 
 interface LineItem {

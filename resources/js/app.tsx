@@ -4,10 +4,16 @@ import '../css/app.css';
 import { registerSW } from 'virtual:pwa-register';
 import { route } from 'ziggy-js';
 
+// Aliased before the `declare global` block: declaring `function route(...)`
+// in terms of `typeof route` makes the global shadow the import inside its own
+// annotation, which TS reports as a circular self-reference (TS2502/TS2577).
+type ZiggyRoute = typeof route;
+
 declare global {
-    function route(...args: Parameters<typeof route>): ReturnType<typeof route>;
+    // eslint-disable-next-line no-var
+    var route: ZiggyRoute;
     interface Window {
-        route: typeof route;
+        route: ZiggyRoute;
     }
 }
 

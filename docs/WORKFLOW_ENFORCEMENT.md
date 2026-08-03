@@ -24,5 +24,11 @@ docker compose exec php-fpm php artisan config:clear
 docker compose exec php-fpm php artisan test
 docker compose exec php-fpm ./vendor/bin/pint --dirty
 docker compose exec php-fpm ./vendor/bin/phpstan analyse --memory-limit=512M
+docker compose run --rm npm sh -c "npx tsc --noEmit"   # vite build does NOT typecheck
 docker compose run --rm npm sh -c "npm run build"
+
+# Playwright E2E — MANDATORY, no exceptions (inte-playbook/workflow/README.md).
+# Needs the stack up and a built frontend. See tests/e2e/README.md.
+docker compose exec php-fpm php artisan garage:seed-e2e --fresh
+docker compose --profile test run --rm playwright sh -c "npx playwright test"
 ```

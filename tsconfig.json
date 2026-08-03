@@ -13,6 +13,12 @@
         "noEmit": true,
         "jsx": "react-jsx",
 
+        // `import.meta.env` and `import.meta.glob` are Vite additions to
+        // ImportMeta. Without this, `tsc --noEmit` (and therefore the
+        // `build:typecheck` script) fails on app.tsx even though `vite build`
+        // succeeds — esbuild strips types without checking them.
+        "types": ["vite/client", "vite-plugin-pwa/client"],
+
         "strict": true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,

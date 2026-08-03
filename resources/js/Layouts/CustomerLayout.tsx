@@ -14,12 +14,17 @@ const NAV_ITEMS = [
     { href: '/account/transactions', label: 'Transactions', icon: CreditCard, exact: false },
 ];
 
-interface PageProps {
+// A `type` alias, not an `interface`: usePage's constraint is Inertia's own
+// PageProps, which carries a string index signature. TS infers an implicit index
+// signature for object *type literals* but never for interfaces, so declaring
+// this as an interface fails with TS2344 while the inline `usePage<{...}>` calls
+// elsewhere in the app compile fine.
+type CustomerPageProps = {
     auth?: { customer?: { name: string; email: string } | null };
-}
+};
 
 export default function CustomerLayout({ children, title }: Props) {
-    const { url, props } = usePage<PageProps>();
+    const { url, props } = usePage<CustomerPageProps>();
     const [navOpen, setNavOpen] = useState(false);
     const customer = props.auth?.customer ?? null;
 

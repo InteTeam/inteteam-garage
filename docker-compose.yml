@@ -103,6 +103,28 @@ services:
       - garage
     command: sh -c "npm install && npm run dev -- --host"
 
+  # Playwright E2E runner. Separate from `npm` because the browsers Playwright
+  # downloads are glibc binaries and node:22-alpine (musl) cannot run them —
+  # `playwright install --with-deps` fails there with "apt-get: not found".
+  # On the `garage` network, so specs reach the app at http://nginx.
+  # Image tag MUST match the @playwright/test version pinned in package.json —
+  # a mismatch makes every browser test fail with "Executable does not exist".
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.62.1-jammy
+    container_name: garage_playwright
+    working_dir: /var/www
+    profiles:
+      - test
+    ipc: host
+    volumes:
+      - ./:/var/www
+    environment:
+      E2E_BASE_URL: "${E2E_BASE_URL:-http://nginx}"
+      CI: "${CI:-}"
+    networks:
+      - garage
+    command: sh -c "npx playwright test"
+
   mailpit:
     image: axllent/mailpit:latest
     container_name: garage_mailpit

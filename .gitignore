@@ -30,3 +30,10 @@ storage/app/garages
 !.env.example
 auth.json
 *.key
+
+# Playwright E2E
+/test-results
+/playwright-report
+/blob-report
+/playwright/.cache
+/storage/app/e2e-fixture.json

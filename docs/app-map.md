@@ -2,7 +2,7 @@
 
 The single reference for "what lives where" in this repo. Read this **before** modifying a feature so you don't re-explore the codebase. Per `inte-playbook/workflow/README.md` Step 0 + Step 11.
 
-**Stack:** Laravel 13 / PHP 8.3 · React 19 + Inertia.js + TypeScript · MariaDB 11.8 · Redis 7 · GCS · MariaDB sessions
+**Stack:** Laravel 13 / PHP 8.3 · React 19 + Inertia.js + TypeScript · MariaDB 11.8 · Redis 7 · GCS · MariaDB sessions · PHPUnit + Playwright
 
 ---
 
@@ -29,7 +29,7 @@ Multi-tenancy is per-`Garage`. Every tenant model uses `HasGarageScope` (resolve
 |---|---|---|---|
 | GET | `/sign-in` | `Auth\SignInController@redirect` | Consolidation gateway (audit 9). Authed mechanic → `/dashboard`; authed customer → `/account`; guests → SSO `/apps/garage/continue` where the role picker lives. Single entry replaces the dual "Customer login" / "Mechanic sign in" CTAs on Home.tsx. Renders `Auth/SsoSetup` if `SSO_PUBLIC_URL` missing. |
 | GET | `/login` | `Auth\SsoLoginController@redirect` | Indirect entry. No longer linked from UI but kept alive as the OAuth `redirect_uri` target for the mechanic Passport client (configured in SSO `config/apps.php`). SSO bounces the user here after the role picker. |
-| GET | `/auth/callback` | `Auth\SsoLoginController@callback` | Exchanges code → token, resolves Mechanic |
+| GET | `/auth/callback` | `Auth\SsoLoginController@callback` | Validates the OAuth `state` (single-use, `hash_equals`, session key `sso_state:mechanic`) → exchanges code → userinfo → `User::firstOrCreate`. Persists the `sub` claim to `users.crm_user_id` (unblocks staff notifications) and fill-only-binds `garages.crm_company_id` from the `company_id` claim. Resolves Mechanic with `withoutGlobalScopes()`. |
 | POST | `/logout` | `Auth\SsoLoginController@logout` | |
 | GET | `/` | `HomeController@index` | **Public landing.** Guests get `Pages/Home.tsx` (mobile-first marketing page). Authed users 302 → `/dashboard` (preserves `EnsureGarageContext` middleware chain). |
 | GET | `/dashboard` | `DashboardController@index` | Garage overview (authed). `SsoLoginController::callback` now redirects to `route('dashboard')` instead of `/` to skip the home-page hop. |
@@ -55,7 +55,7 @@ Multi-tenancy is per-`Garage`. Every tenant model uses `HasGarageScope` (resolve
 | GET | `/jobs/{job}/portal-link` | `PortalLinkController@show` | View signed URL for customer |
 | POST | `/jobs/{job}/portal-link/regenerate` | `PortalLinkController@regenerate` | Revokes old token, mints new |
 | GET | `/settings` | `GarageSettingsController@index` | Admin only |
-| PUT | `/settings` | `GarageSettingsController@update` | Admin only |
+| PUT | `/settings` | `GarageSettingsController@update` | Admin only. Now also accepts `crm_company_id` / `crm_company_slug` (Settings → CRM Connection). Neither is in `GarageSettingsService::snapshot()`, so changing them does **not** append `EVENT_PREFERENCE_CHANGED` to every active job — deployment config, not customer-visible policy. |
 
 ### `routes/customer.php` — customer account portal (`auth:customer` guard, SSO)
 
@@ -97,6 +97,8 @@ All routes are prefixed with `portal/{token}` and resolve `RepairJob` from the t
 |---|---|---|
 | GET | `api/v1/jobs/{job}` | `Api\JobApiController@show` |
 | GET | `api/v1/jobs/{job}/media` | `Api\JobApiController@media` |
+
+Machine-to-machine: no session, no `User`. The shared secret **is** the trust boundary, so these actions do not call `$this->authorize()` — see the gotcha below. Secret-holder callers read across garages by design, matching the CRM's own `internal/*` posture. Tests: `tests/Feature/Api/InternalJobApiTest.php`.
 
 ### Webhooks (no auth — verified by signature)
 
@@ -164,7 +166,7 @@ Lock is idempotent (`forceFill(['locked_at' => now()])` only when `locked_at IS 
 | `EVENT_LINE_ITEM_APPROVED` / `_DECLINED` | Customer portal `PortalLineItemController` |
 | `EVENT_CUSTOMER_QUESTION` | Customer portal — adds `notes` payload |
 | `EVENT_MECHANIC_RESPONSE` | `LineItemResponseController@store` — payload `{line_item_id, message}` |
-| `EVENT_ESTIMATE_SENT` | `EstimateController@send` |
+| `EVENT_ESTIMATE_SENT` | `EstimateService::markSent()`, inside the same transaction as the state transition + `sent_at`. **Was documented here but had no writer at all until the 2026-08-03 audit** — the estimate-sent event, which the whole approval trail hangs off, left no audit row. Payload: `{estimate_id, revision_number, line_item_count}`. |
 | `EVENT_SCOPE_CHANGE` | `ScopeChangeController@store` (via `ScopeChangeService`) — payload `{estimate_id, revision_number, line_item_count}` |
 | `EVENT_PREFERENCE_CHANGED` | Customer/admin changes notification channel · also fires per non-collected job when admin toggles `Garage.online_payment_enabled` or any of the compliance reminder settings (`compliance_reminders_enabled`, `compliance_reminders_channel`, `compliance_reminders_recipient`) via `GarageSettingsService` |
 | `EVENT_HANDOVER_SUBMITTED` | Customer submits handover inspection |
@@ -209,6 +211,8 @@ All business logic lives in `app/Services/`. Controllers delegate to services; s
 | `ApprovalEventService` | Only writer of `ApprovalEvent`. `record()` + `recordBySystem()` only |
 | `EstimateService` | CRUD on `Estimate`. `update()` **throws** when `Estimate::hasCustomerResponse()` is true — must create a new revision instead. `addLineItem()` (audit 7 / B1) **throws** when `sent_at !== null` OR `hasCustomerResponse()` — same revision-or-bust rule but seals at the earlier of "sent to customer" and "first customer response". `createForJob($job)` is the race-safe revision creator (locks parent job row + `max+1` inside `DB::transaction`); `EstimateController::store` delegates to it. `markSent()` wraps the state transition + sent timestamp in a transaction. `guardSendable()` throws on cross-locale send without confirmation. `confirmTranslation()` atomically persists per-line-item LLM-raw + edited text + editor mechanic FK and flips `Estimate.preview_confirmed_at`. |
 | `SignedPortalTokenService` | Generate / regenerate / revoke `SignedPortalToken`; builds `portal.show` URL |
+| `SsoService` | Shared OAuth2 plumbing for both SSO clients: authorize-URL build with a per-client `state`, single-use timing-safe `consumeState()`, token exchange (`asForm()`), userinfo fetch, logout URL. Extracted because both controllers had divergent copies and **neither sent or validated `state`**. |
+| `InternalSecretGuard` (`app/Support/`) | Fail-closed `hash_equals` check for the two shared-secret surfaces. Replaces `header() !== config()`, which authenticated a header-less request whenever the secret was unset. |
 | `GarageSettingsService` | Persists garage settings. Refreshes the Garage from DB before snapshotting so that DB-default columns (e.g. `compliance_reminders_recipient='customer'`) don't read as `null → 'customer'` spurious diffs on first save. Generic diff/audit loop fires `EVENT_PREFERENCE_CHANGED` (toggle online payment OR any of `compliance_reminders_{enabled,channel,recipient}`), `EVENT_STAFF_TOGGLE_LOCK_CHANGED`, or `EVENT_TIMEOUT_POLICY_CHANGED` per non-collected job for the matching changed setting. `compliance_reminders_{windows,types}` are deliberately NOT audited — they're tuning knobs, not policy switches. |
 | `ScopeChangeService` | Atomically: new `Estimate` revision (`max(revision_number)+1`, `sent_at = now()`), new `LineItem` rows (status pending), state transition `approved → scope_change`, `EVENT_SCOPE_CHANGE` audit row. Wrapped in `DB::transaction` — partial-write impossible. |
 | `MechanicService` | CRUD + `listForJobPicker()` (active mechanics + user name slim shape) + `listUnassignedUsers()` (users without any mechanic record — feeds the create form). `getAll()` eager-loads `user:id,name,email` (lazy load would 500 the index page). |
@@ -218,8 +222,8 @@ All business logic lives in `app/Services/`. Controllers delegate to services; s
 | `LineItemDecisionService` | Customer-side line item decisions from the portal: `approve` / `decline($notes)` / `question($message)`. Each writes the line item state (where applicable) + records the matching audit event in one call. Sole writer of `LineItem.status` / `LineItem.customer_notes` from the portal. `PortalLineItemController` delegates entirely. |
 | `JobStageService` | CRUD wrapper + `updateNotes(JobStage, string, Mechanic)` does eager translation at write time (mechanic locale → customer locale via CRM), persists `notes_translated` + locale pair + timestamp; cached by (text hash, locale pair) for 24h. Constructor now requires `TranslationService` + `CrmApiService`. |
 | `GcsService` | Only path to GCS — upload, signed URL generation, object naming |
-| `CrmApiService` | Bottom-layer HTTP client to CRM (`X-Internal-Secret`); customers + notifications + payment requests. `getCustomerLocale($id)` caches per CRM customer for 1h and catches all errors → `null` (caller falls back to garage locale). `sendStaffNotification($crmUserId, $channel, …)` is the polymorphic-recipient endpoint feature-flagged via `services.garage.staff_notifications_via_crm_enabled` — when off, just logs and returns. |
-| `CrmNotificationService` | Customer-side job-event wrappers over `CrmApiService::sendNotification()` (recipient_type=customer). |
+| `CrmApiService` | Bottom-layer HTTP client to CRM. Auth is `Authorization: Bearer` (`CRM_INTERNAL_TOKEN`) — the CRM's `VerifyInternalToken` reads `bearerToken()` and ignores custom headers, so the previous `X-Internal-Secret` was rejected on every call. Prefers `CRM_INTERNAL_URL` (container-to-container) over the public URL, `retry(2, 500)`. Company-scoped: every call takes an optional `$companyId` override resolving `Garage.crm_company_id` → `CRM_COMPANY_ID`. `findCustomerByEmail()` hits the real `internal/customers/by-email` route and reads `found`; `exchangeCustomerSsoToken()` is the only path that yields a CRM customer **id**. See `docs/features/crm-integration/contract.md` for which endpoints are live and which the CRM still owes. `getCustomerLocale($id)` caches per CRM customer for 1h and catches all errors → `null` (caller falls back to garage locale). `sendStaffNotification($crmUserId, $channel, …)` is the polymorphic-recipient endpoint feature-flagged via `services.garage.staff_notifications_via_crm_enabled` — when off, just logs and returns. |
+| `CrmNotificationService` | Customer-side job-event wrappers over `CrmApiService::sendNotification()` (recipient_type=customer). **Never throws** — a notification failure is logged at `error` and swallowed, because it is a side effect of the domain event, not part of it. |
 | `CrmStaffNotificationService` | Staff-side wrappers (`notifyHandoverFlaggedToMechanic`, `notifyPaymentConfirmedToMechanic`, `notifyTimeoutReminderToMechanic`). Resolves channels via `Mechanic::canToggleChannels()`. **Skips dispatch + audit entirely (logs warning) when `User.crm_user_id` is null** — no false audit claims while SSO claim wiring is pending. |
 | `CrmPaymentService` | `calculateAmount()` (approved line items only), `requestPayment()` (calls CRM + logs `EVENT_PAYMENT_REQUESTED`), `confirmPayment()` |
 | `TranslationService` | OpenAI wrapper with embedded glossary + 24h cache per (text hash, locale pair). `detectLanguage($text)` calls OpenAI to identify ISO 639-1 from `SUPPORTED_LOCALES`. `verifySourceLocale($configured, $sample)` returns the detected locale (and logs a warning) when it disagrees with `$configured`. `previewEstimateTranslation()` includes a `translated_by_ai` flag per line item. `resolveLocalePairForJob(RepairJob $job, User $user, CrmApiService $crm)` is the single canonical resolver used by both `EstimateLifecycleController` (send/preview) and `LineItemResponseController` (store/preview) — eager-loads garage+vehicle, returns `[mechanicLocale, customerLocale]`, falls back to garage default on CRM errors. |
@@ -297,6 +301,19 @@ All business logic lives in `app/Services/`. Controllers delegate to services; s
 
 - **`actor_id` on customer audit events is the `Customer.id` (SSO portal) or `SignedPortalToken.token` (signed portal).** Both `Customer\LineItemController` and `Portal\PortalLineItemController` pass `actorId` explicitly to `LineItemDecisionService`. Skipping it falls back to `'unknown'` (the `ApprovalEventService::record` default) which makes the audit log dishonest. Tests assert `actor_id = $customer->id` and `actor_id = $token`.
 
+### Learned in the 2026-08-03 playbook audit
+
+- **`config/inertia.php` must exist, and `pages.paths` must say `js/Pages`.** The package default is `resource_path('js/pages')` — lowercase. On a case-insensitive filesystem (Windows/macOS dev, OneDrive) it resolves anyway; on a case-sensitive one (the php-fpm container, Linux CI, production) it does not, and `assertInertia`'s page-existence check then fails **every** test asserting a component name with "Inertia page component file [X] does not exist". Eight tests were failing this way and had presumably never been green outside a Windows checkout. Keep the path in sync with the `import.meta.glob('./Pages/**/*.tsx')` in `resources/js/app.tsx`.
+- **A shared-secret check must fail closed.** `$request->header($h) !== config($k)` authenticates a header-less request whenever the secret is unset, because `null !== null` is `false`. Both the CRM payment webhook and the internal job API were wide open on any deploy missing `GARAGE_INTERNAL_SECRET`. All such checks go through `InternalSecretGuard::assert()` (500 + logged error when unconfigured, `hash_equals` otherwise — mirroring the CRM's own `VerifyInternalToken`). Tests must cover the unconfigured case explicitly; the pre-existing webhook tests always set the secret, so the hole was invisible.
+- **Both SSO flows carry a per-client OAuth `state`.** `SsoService::authorizeUrl()` stores it under `sso_state:{mechanic|customer}`; `consumeState()` pulls it (single-use) and compares with `hash_equals`. Namespaced per client because the two clients share one browser session and a single key would have the second tab's redirect clobber the first's state. Without `state` the callback accepts any `?code=` the victim's browser can be made to visit — login CSRF that, on the customer guard, also binds them to the attacker's CRM customer.
+- **`EnsureGarageContext` must resolve the Mechanic with `withoutGlobalScopes()`.** `Mechanic` uses `HasGarageScope`, so `$user->mechanic` is filtered by the very session value this middleware exists to set. Resolving through the scope makes the lookup depend on its own output: any session holding a different garage's id returned null and the middleware aborted 403 on every route, locking a reassigned mechanic out of the entire dashboard with "No garage association found" until the session expired. The middleware now also re-asserts `current_garage_id` on every request instead of only when absent.
+- **Route model binding runs before the `garage` middleware.** `SubstituteBindings` is in the `web` group; `auth` and `garage` are route middleware, which run after. So `{job}` is resolved against whatever `current_garage_id` the session arrives with. Cross-garage access is still blocked, but by `RepairJobPolicy` one layer later — expect **403, not 404**, for a stale-session cross-garage read (`StaleGarageContextTest`).
+- **A secret-authenticated route cannot use `$this->authorize()`.** `JobApiController::show/media` authorized against `RepairJobPolicy::view(User $user, …)` on routes that have no session, so the Gate denied for the null user and both internal endpoints returned **403 unconditionally** — dead since they were written, with no test covering them. Machine-to-machine routes are authorized by the shared secret; that is the trust boundary.
+- **Verify an external endpoint exists before writing the client.** Four independent CRM defects — wrong auth header, wrong path, missing required `company_id`, response key that is never returned — all survived a 244-test suite because every test faked a response by URL pattern and none asserted the **request**. `Http::fake(['*/some/path' => ...])` passes happily against a path the remote service does not serve. `tests/Feature/Crm/CrmApiContractTest.php` asserts outbound requests; `contract.md` records what is actually deployed.
+- **An external side effect must not fail a committed domain write.** `CrmApiService::sendNotification()` throws on non-2xx and no caller caught it, so sending an estimate committed the transition, wrote the audit row, and *then* 500'd — and the mechanic's retry hit the "already sent" guard. Notifications now degrade with an `error` log (`CrmNotificationService`, `CrmStaffNotificationService`); user-blocking calls like the payment request surface a flash error instead (`PortalPaymentController`).
+- **Playwright cannot run in the `npm` container.** `node:22-alpine` is musl; Playwright's browsers are glibc and `playwright install --with-deps` fails with `apt-get: not found`. Use the `playwright` compose service (profile `test`), whose image tag **must** match the exactly-pinned `@playwright/test` version in `package.json` — a mismatch fails every browser test with "Executable doesn't exist at /ms-playwright/…". `baseURL` defaults to `http://nginx`, not `localhost`: inside the runner, `localhost` is the runner.
+- **`repair_job_mechanic`'s FK column is `repair_job_id`, not `job_id`.** The child tables (`approval_events`, `job_state_transitions`, `estimates`, `job_stages`) all use `job_id`; the pivot does not. Raw `DB::table()` cleanup that assumes `job_id` throws `Unknown column 'job_id'`.
+
 ---
 
 ## Where the docs live
@@ -310,3 +327,7 @@ All business logic lives in `app/Services/`. Controllers delegate to services; s
 | `docs/database/migrations/NNN_*.md` | One doc per migration — schema, indexes, FKs, deviations |
 | `docs/api/portal.yaml` | OpenAPI spec for customer portal endpoints |
 | `docs/DATABASE_CONVENTIONS.md`, `docs/WORKFLOW_ENFORCEMENT.md` | Project-level overrides to playbook |
+| `docs/FEATURE_DESIGN_CHECKLIST.md` | Working template — copy into each feature README |
+| `docs/DOCUMENTATION_STANDARDS.md` | What to document, where, and the "why not what" rule |
+| `docs/features/crm-integration/{README,contract}.md` | CRM wire contract: auth, tenancy, live endpoints, endpoints still owed by the CRM, degradation rules |
+| `tests/e2e/README.md` | Playwright: how to run, what is covered, why the mechanic dashboard is not |
