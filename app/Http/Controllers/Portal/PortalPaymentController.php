@@ -9,8 +9,10 @@ use App\Models\RepairJob;
 use App\Services\CrmPaymentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 final class PortalPaymentController extends Controller
 {
@@ -48,7 +50,22 @@ final class PortalPaymentController extends Controller
             return back()->withErrors(['payment' => 'Payment has already been confirmed.']);
         }
 
-        $this->paymentService->requestPayment($job);
+        // Unlike notifications, a failed payment request must be visible: the
+        // customer is waiting on a payment link. But it must surface as a flash
+        // error they can act on, not the raw 500 the uncaught RuntimeException
+        // from `CrmApiService::assertSuccess` used to produce.
+        try {
+            $this->paymentService->requestPayment($job);
+        } catch (Throwable $e) {
+            Log::error('CRM payment request failed', [
+                'job_id' => $job->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withErrors([
+                'payment' => 'The payment request could not be created. Please try again shortly or contact the garage.',
+            ]);
+        }
 
         return back()->with(['alert' => 'The payment request was initiated.', 'type' => 'success']);
     }

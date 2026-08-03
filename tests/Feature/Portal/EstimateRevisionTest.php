@@ -45,7 +45,7 @@ final class EstimateRevisionTest extends TestCase
     public function test_service_update_throws_after_customer_response(): void
     {
         $estimate = $this->makeEstimateWithLineItem(LineItem::STATUS_APPROVED);
-        $service = new EstimateService;
+        $service = app(EstimateService::class);
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessageMatches('/Cannot modify estimate after customer response/');
@@ -56,7 +56,7 @@ final class EstimateRevisionTest extends TestCase
     public function test_service_update_succeeds_while_all_line_items_pending(): void
     {
         $estimate = $this->makeEstimateWithLineItem(LineItem::STATUS_PENDING);
-        $service = new EstimateService;
+        $service = app(EstimateService::class);
 
         $sentAt = now()->startOfMinute();
         $updated = $service->update($estimate, ['sent_at' => $sentAt]);
@@ -121,7 +121,7 @@ final class EstimateRevisionTest extends TestCase
             'revision_number' => 2,
         ]);
 
-        $service = new EstimateService;
+        $service = app(EstimateService::class);
         $service->update($revision2, ['sent_at' => now()]);
 
         $this->assertNotNull($revision2->fresh()->sent_at);

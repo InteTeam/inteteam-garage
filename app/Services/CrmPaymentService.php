@@ -50,6 +50,8 @@ final class CrmPaymentService
 
         $total = $approvedItems->sum('price');
 
+        $job->loadMissing(['vehicle', 'garage']);
+
         $reference = $this->crmApiService->createPaymentRequest(
             jobId: $job->id,
             lineItems: $approvedItems->map(fn (LineItem $item) => [
@@ -58,6 +60,7 @@ final class CrmPaymentService
             ])->toArray(),
             total: $total,
             crmCustomerId: $job->vehicle->crm_customer_id,
+            companyId: $job->garage->crm_company_id,
         );
 
         $job->update(['payment_reference' => $reference]);

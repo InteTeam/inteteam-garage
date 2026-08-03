@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\ApprovalEvent;
 use App\Models\Estimate;
 use App\Models\LineItem;
 use App\Models\RepairJob;
@@ -13,6 +14,10 @@ use RuntimeException;
 
 final class EstimateService
 {
+    public function __construct(
+        private readonly ApprovalEventService $approvalEvents,
+    ) {}
+
     public function getAll(): Collection
     {
         return Estimate::query()
@@ -101,8 +106,27 @@ final class EstimateService
         CrmNotificationService $notifications,
     ): void {
         DB::transaction(function () use ($job, $estimate, $stateMachine): void {
-            $stateMachine->transition($job, RepairJob::STATE_AWAITING_APPROVAL, (string) auth()->id());
+            $actorId = (string) auth()->id();
+
+            $stateMachine->transition($job, RepairJob::STATE_AWAITING_APPROVAL, $actorId);
             $estimate->update(['sent_at' => now()]);
+
+            // `EVENT_ESTIMATE_SENT` was declared on ApprovalEvent and documented in
+            // docs/app-map.md as being written here, but nothing in the codebase
+            // ever wrote it — so "the estimate was sent to the customer", the event
+            // the whole approval trail hangs off, left no audit row. Inside the
+            // transaction so the row cannot exist without `sent_at`, or vice versa.
+            $this->approvalEvents->record(
+                job: $job,
+                eventType: ApprovalEvent::EVENT_ESTIMATE_SENT,
+                actorType: ApprovalEvent::ACTOR_MECHANIC,
+                actorId: $actorId,
+                payload: [
+                    'estimate_id' => $estimate->id,
+                    'revision_number' => $estimate->revision_number,
+                    'line_item_count' => $estimate->lineItems()->count(),
+                ],
+            );
         });
 
         $notifications->notifyEstimateSent($job);

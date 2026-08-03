@@ -9,7 +9,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class CheckGarageRole
+final class CheckGarageRole
 {
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {

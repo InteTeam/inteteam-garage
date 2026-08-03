@@ -9,6 +9,7 @@ use App\Models\Mechanic;
 use App\Models\User;
 use App\Models\Vehicle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -20,10 +21,47 @@ final class VehicleControllerTest extends TestCase
     {
         parent::setUp();
 
+        // These cases exercise the CRM existence check, so the lookup-by-id
+        // capability is switched on explicitly. It is OFF by default because the
+        // CRM does not expose the endpoint yet and a missing route answers 404 —
+        // indistinguishable from "customer not found", which would reject every
+        // valid id. `test_store_accepts_unverifiable_customer_when_lookup_disabled`
+        // covers the default.
+        Config::set('services.crm.customer_lookup_by_id_enabled', true);
+
         Http::fake([
             '*/api/v1/internal/customers/crm-valid' => Http::response(['data' => ['id' => 'crm-valid', 'locale' => 'en']], 200),
             '*/api/v1/internal/customers/crm-missing' => Http::response(['error' => 'not found'], 404),
             '*/api/v1/internal/customers/*' => Http::response(['data' => ['locale' => 'en']], 200),
+        ]);
+    }
+
+    /**
+     * Regression guard for the default posture: with the capability off, a CRM
+     * 404 must not fail validation. Before the flag existed this is exactly the
+     * path that made vehicle creation impossible in every CRM-configured
+     * environment.
+     */
+    public function test_store_accepts_unverifiable_customer_when_lookup_disabled(): void
+    {
+        Config::set('services.crm.customer_lookup_by_id_enabled', false);
+
+        [$garage, $admin] = $this->makeGarageWithAdmin();
+
+        $this->actingAs($admin)
+            ->withSession(['current_garage_id' => $garage->id])
+            ->post(route('vehicles.store'), [
+                'crm_customer_id' => 'crm-missing',
+                'registration' => 'ZZ99 ZZZ',
+                'make' => 'Ford',
+                'model' => 'Focus',
+                'year' => 2020,
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('vehicles', [
+            'registration' => 'ZZ99 ZZZ',
+            'crm_customer_id' => 'crm-missing',
         ]);
     }
 

@@ -9,7 +9,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class ValidatePortalToken
+final class ValidatePortalToken
 {
     public function handle(Request $request, Closure $next): Response
     {

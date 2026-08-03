@@ -108,6 +108,25 @@ final class PaymentWebhookTest extends TestCase
         ]);
     }
 
+    /**
+     * Regression: the check used to be `header() !== config()`. With
+     * `GARAGE_INTERNAL_SECRET` unset both sides were `null`, so a header-less
+     * POST authenticated and could confirm payment on any job by id. Fail closed.
+     */
+    public function test_unconfigured_secret_fails_closed(): void
+    {
+        Config::set('services.garage.internal_secret', null);
+
+        $job = $this->makeJob();
+
+        $this->postJson('/webhooks/payment-confirmed', [
+            'job_id' => $job->id,
+            'payment_reference' => 'pay-123',
+        ])->assertStatus(500);
+
+        $this->assertNull($job->fresh()->payment_confirmed_at);
+    }
+
     public function test_invalid_payload_is_rejected(): void
     {
         $this->withHeader('X-Internal-Secret', self::SECRET)

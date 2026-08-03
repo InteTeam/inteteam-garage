@@ -209,6 +209,7 @@ final class ComplianceReminderService
                         'window_days' => $windowDays,
                         'expires_on' => $record->expires_on->toDateString(),
                     ],
+                    companyId: $garage->crm_company_id,
                 );
             } else {
                 $this->crmApiService->sendStaffNotification(
@@ -222,6 +223,7 @@ final class ComplianceReminderService
                         'expires_on' => $record->expires_on->toDateString(),
                         'vehicle_id' => $vehicle->id,
                     ],
+                    companyId: $garage->crm_company_id,
                 );
             }
 

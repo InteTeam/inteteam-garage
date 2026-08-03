@@ -24,6 +24,14 @@ final class UpdateGarageSettingsRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            // CRM tenant binding. Normally auto-filled from the SSO `company_id`
+            // claim on the first admin login (SsoLoginController::bindGarageToCrmCompany);
+            // exposed here so an operator can correct it or set it up front. The
+            // internal CRM endpoints key on the id, the customer SSO-exchange route
+            // takes the slug in its path — the CRM offers no id↔slug lookup, so both
+            // are stored. Sized to the column widths in migration 031.
+            'crm_company_id' => ['sometimes', 'nullable', 'string', 'max:36'],
+            'crm_company_slug' => ['sometimes', 'nullable', 'string', 'max:255'],
             'default_notification_channel' => ['required', Rule::in(Garage::CHANNELS)],
             'online_payment_enabled' => ['boolean'],
             'locale' => ['required', 'string', 'in:en,pl'],

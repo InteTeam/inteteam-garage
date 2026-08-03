@@ -9,6 +9,8 @@ interface Garage {
     id: string;
     name: string;
     slug: string;
+    crm_company_id: string | null;
+    crm_company_slug: string | null;
     online_payment_enabled: boolean;
     default_notification_channel: Channel;
     locale: string;
@@ -39,6 +41,8 @@ const TYPE_OPTIONS: { value: ReminderType; label: string }[] = [
 export default function SettingsIndex({ garage }: Props) {
     const { data, setData, put, processing, errors } = useForm({
         name: garage.name,
+        crm_company_id: garage.crm_company_id ?? '',
+        crm_company_slug: garage.crm_company_slug ?? '',
         default_notification_channel: garage.default_notification_channel,
         online_payment_enabled: garage.online_payment_enabled,
         locale: garage.locale,
@@ -88,6 +92,55 @@ export default function SettingsIndex({ garage }: Props) {
                         />
                         {errors.name && <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.name}</p>}
                     </div>
+
+                    <hr className="border-gray-200 dark:border-slate-800" />
+
+                    <div className="space-y-4">
+                        <div>
+                            <h2 className="text-lg font-semibold">CRM Connection</h2>
+                            <p className="text-xs text-gray-500 dark:text-slate-400">
+                                Which InteTeam CRM company this garage belongs to. Normally filled in automatically the first
+                                time a garage admin signs in through SSO — only change it if the garage is linked to the wrong
+                                company.
+                            </p>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-1">CRM Company ID</label>
+                            <input
+                                type="text"
+                                value={data.crm_company_id}
+                                onChange={(e) => setData('crm_company_id', e.target.value)}
+                                placeholder="Filled in automatically on first SSO sign-in"
+                                className="w-full border border-gray-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 rounded px-3 py-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                            />
+                            <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+                                Used to scope customer, notification, and payment calls to the right CRM tenant.
+                            </p>
+                            {errors.crm_company_id && (
+                                <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.crm_company_id}</p>
+                            )}
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-1">CRM Company Slug</label>
+                            <input
+                                type="text"
+                                value={data.crm_company_slug}
+                                onChange={(e) => setData('crm_company_slug', e.target.value)}
+                                placeholder="e.g. my-garage"
+                                className="w-full border border-gray-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 rounded px-3 py-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                            />
+                            <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+                                Needed for customer sign-in — the CRM identifies the company by slug on that route.
+                            </p>
+                            {errors.crm_company_slug && (
+                                <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.crm_company_slug}</p>
+                            )}
+                        </div>
+                    </div>
+
+                    <hr className="border-gray-200 dark:border-slate-800" />
 
                     <div>
                         <label className="block text-sm font-medium mb-1">Default Notification Channel</label>

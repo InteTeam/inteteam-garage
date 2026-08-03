@@ -9,6 +9,7 @@ use App\Models\Garage;
 use App\Models\Mechanic;
 use App\Models\RepairJob;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 final class CrmStaffNotificationService
 {
@@ -83,19 +84,41 @@ final class CrmStaffNotificationService
         $crmEnabled = (bool) config('services.garage.staff_notifications_via_crm_enabled', false);
 
         foreach ($channels as $channel) {
-            $this->crm->sendStaffNotification(
-                crmUserId: $crmUserId,
-                channel: $channel,
-                subject: $subject,
-                body: $body,
-                meta: ['job_id' => $job->id, 'trigger' => $trigger, 'mechanic_id' => $mechanic->id],
-            );
+            // A CRM outage must not fail the caller. `PaymentWebhookController`
+            // fans out over every assigned mechanic *after* payment is already
+            // confirmed and committed — an exception here would 500 the webhook,
+            // the CRM would retry, and the retry hits the idempotency guard and
+            // silently drops the notification for good. `CheckJobTimeouts` would
+            // likewise abort mid-garage. `crm_dispatched` records what actually
+            // happened, so the append-only audit log never overstates delivery.
+            $dispatched = $crmEnabled;
+
+            try {
+                $this->crm->sendStaffNotification(
+                    crmUserId: $crmUserId,
+                    channel: $channel,
+                    subject: $subject,
+                    body: $body,
+                    meta: ['job_id' => $job->id, 'trigger' => $trigger, 'mechanic_id' => $mechanic->id],
+                    companyId: $job->garage->crm_company_id,
+                );
+            } catch (Throwable $e) {
+                $dispatched = false;
+
+                Log::error('CRM staff notification failed', [
+                    'job_id' => $job->id,
+                    'mechanic_id' => $mechanic->id,
+                    'channel' => $channel,
+                    'trigger' => $trigger,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
             $this->approvalEvents->recordBySystem($job, ApprovalEvent::EVENT_STAFF_NOTIFICATION_DISPATCHED, [
                 'mechanic_id' => $mechanic->id,
                 'channel' => $channel,
                 'trigger' => $trigger,
-                'crm_dispatched' => $crmEnabled,
+                'crm_dispatched' => $dispatched,
             ]);
         }
     }

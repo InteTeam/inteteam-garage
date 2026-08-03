@@ -16,6 +16,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $id
  * @property string $name
  * @property string $slug
+ * @property string|null $crm_company_id
+ * @property string|null $crm_company_slug
  * @property bool $online_payment_enabled
  * @property string $default_notification_channel
  * @property bool $staff_channel_toggle_default
@@ -67,6 +69,8 @@ final class Garage extends Model
     protected $fillable = [
         'name',
         'slug',
+        'crm_company_id',
+        'crm_company_slug',
         'online_payment_enabled',
         'default_notification_channel',
         'staff_channel_toggle_default',

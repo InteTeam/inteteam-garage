@@ -7,17 +7,23 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Services\CrmApiService;
+use App\Services\SsoService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Http;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\Response as BaseResponse;
 
 final class CustomerSsoLoginController extends Controller
 {
-    public function __construct(private readonly CrmApiService $crm) {}
+    /** Namespaces the OAuth `state` so the two SSO clients don't clobber each other. */
+    private const CLIENT_KEY = 'customer';
+
+    public function __construct(
+        private readonly CrmApiService $crm,
+        private readonly SsoService $sso,
+    ) {}
 
     public function redirect(): RedirectResponse|Response
     {
@@ -37,9 +43,11 @@ final class CustomerSsoLoginController extends Controller
             ]);
         }
 
-        $callbackUrl = route('customer.callback');
-
-        return redirect("{$ssoUrl}/oauth/authorize?client_id={$clientId}&redirect_uri={$callbackUrl}&response_type=code&scope=");
+        return redirect($this->sso->authorizeUrl(
+            clientKey: self::CLIENT_KEY,
+            clientId: (string) $clientId,
+            redirectUri: route('customer.callback'),
+        ));
     }
 
     public function callback(Request $request): RedirectResponse
@@ -47,58 +55,62 @@ final class CustomerSsoLoginController extends Controller
         $code = $request->query('code');
 
         if (! is_string($code) || $code === '') {
-            return redirect()->route('home')->withErrors(['sso' => 'Authentication failed.']);
+            return $this->fail('Authentication failed.');
         }
 
-        // OAuth 2.0 token endpoint requires application/x-www-form-urlencoded.
-        // Http::post() defaults to JSON — Passport's PSR-7 request then reads
-        // an empty parsed body, no grant matches grant_type, and league throws
-        // unsupported_grant_type. See SsoLoginController::callback for detail.
-        $response = Http::asForm()->post(config('services.sso.url') . '/oauth/token', [
-            'grant_type' => 'authorization_code',
-            'client_id' => config('services.sso.customer_client_id'),
-            'client_secret' => config('services.sso.customer_client_secret'),
-            'redirect_uri' => route('customer.callback'),
-            'code' => $code,
-        ]);
-
-        if ($response->failed()) {
-            return redirect()->route('home')->withErrors(['sso' => 'Authentication failed.']);
+        if (! $this->sso->consumeState(self::CLIENT_KEY, $request->query('state'))) {
+            return $this->fail('The sign-in request expired or was tampered with. Please try again.');
         }
 
-        $tokenData = $response->json();
+        $tokenData = $this->sso->exchangeCode(
+            clientId: (string) config('services.sso.customer_client_id'),
+            clientSecret: (string) config('services.sso.customer_client_secret'),
+            redirectUri: route('customer.callback'),
+            code: $code,
+        );
 
-        $userResponse = Http::withToken($tokenData['access_token'])
-            ->get(config('services.sso.url') . '/oauth/userinfo');
-
-        if ($userResponse->failed()) {
-            return redirect()->route('home')->withErrors(['sso' => 'Could not retrieve user.']);
+        if ($tokenData === null) {
+            return $this->fail('Authentication failed.');
         }
 
-        $ssoUser = $userResponse->json();
+        $accessToken = (string) $tokenData['access_token'];
+        $ssoUser = $this->sso->fetchUserInfo($accessToken);
+
+        if ($ssoUser === null) {
+            return $this->fail('Could not retrieve user.');
+        }
+
         $email = (string) ($ssoUser['email'] ?? '');
         $name = (string) ($ssoUser['name'] ?? '');
 
         if ($email === '') {
-            return redirect()->route('home')->withErrors(['sso' => 'SSO response missing email.']);
+            return $this->fail('SSO response missing email.');
         }
 
-        // Try to resolve the CRM customer record by email. If CRM doesn't know
-        // this person yet, we still log them in — the dashboard will show a
-        // "no CRM link yet" empty state instead of vehicles/jobs.
-        $crmCustomer = $this->crm->findCustomerByEmail($email);
-
         $customer = Customer::firstOrNew(['email' => strtolower($email)]);
-        $customer->name = $customer->name ?: ($name ?: $email);
+        $customer->name = $customer->name ?: ($name !== '' ? $name : $email);
+
+        // Bind the local row to the CRM's customer record by handing the SSO
+        // access token to the CRM's own exchange endpoint. This replaces a lookup
+        // against `/api/v1/internal/customers?email=`, a route the CRM does not
+        // have, whose response was read for a `data.id` the CRM never returns —
+        // so `crm_customer_id` stayed null forever and `Customer::isLinkedToCrm()`
+        // was false for every user, which short-circuits every `/account` detail
+        // endpoint to 404. The exchange endpoint is the one store_front uses, it
+        // is the only CRM route that returns a customer id, and it also creates
+        // the CRM customer (back-linking their bookings/orders by email) on first
+        // sign-in — so a first-time garage customer gets a real CRM record rather
+        // than a permanent "not linked" banner.
+        //
+        // A CRM miss is deliberately non-fatal: the customer still logs in and
+        // sees the unlinked-state banner.
+        $crmCustomer = $this->crm->exchangeCustomerSsoToken($accessToken);
 
         if ($crmCustomer !== null) {
-            $crmId = $crmCustomer['id'] ?? null;
-            if (is_string($crmId) && $crmId !== '') {
-                $customer->crm_customer_id = $crmId;
-            }
-            $crmName = $crmCustomer['name'] ?? null;
-            if (is_string($crmName) && $crmName !== '') {
-                $customer->name = $crmName;
+            $customer->crm_customer_id = $crmCustomer['id'];
+
+            if ($crmCustomer['name'] !== null && $crmCustomer['name'] !== '') {
+                $customer->name = $crmCustomer['name'];
             }
         }
 
@@ -118,10 +130,12 @@ final class CustomerSsoLoginController extends Controller
         $request->session()->regenerateToken();
 
         // Clear SSO session too — otherwise clicking any login button right
-        // after sign-out auto-passes the same user back through. SSO logout
-        // bounces back to home via redirect_to.
-        $ssoLogoutUrl = config('services.sso.public_url') . '/logout?redirect_to=' . urlencode(route('home'));
+        // after sign-out auto-passes the same user back in.
+        return Inertia::location($this->sso->logoutUrl(route('home')));
+    }
 
-        return Inertia::location($ssoLogoutUrl);
+    private function fail(string $message): RedirectResponse
+    {
+        return redirect()->route('home')->withErrors(['sso' => $message]);
     }
 }

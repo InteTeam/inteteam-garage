@@ -30,9 +30,46 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | InteTeam CRM
+    |--------------------------------------------------------------------------
+    |
+    | The CRM's `internal/*` endpoints sit behind `VerifyInternalToken`, which
+    | reads `$request->bearerToken()` and compares it to the CRM's own
+    | `services.internal.token`. This app used to send `X-Internal-Secret`, a
+    | header the CRM never reads — every internal call was unauthenticated and
+    | answered 401. `token` is the value that actually authenticates; `secret` is
+    | kept as the fallback so an existing deploy that only ever set
+    | `CRM_API_SECRET` (with the right value) keeps working after this change.
+    |
+    | `internal_url` mirrors the SSO_INTERNAL_URL pattern: container-to-container
+    | over the shared `proxy-tier` network, no public-internet round trip. Falls
+    | back to the public URL when unset.
+    |
+    | The CRM is multi-tenant per company, and its internal endpoints are
+    | company-scoped, so a garage cannot make a tenant-correct call without
+    | knowing which CRM company it belongs to. `company_id` / `company_slug` are
+    | the app-wide default; a `Garage` may override via `garages.crm_company_id`
+    | (see GarageSettingsService) for multi-garage installs.
+    |
+    */
+
     'crm' => [
         'url' => env('CRM_API_URL'),
+        'internal_url' => env('CRM_INTERNAL_URL', env('CRM_API_URL')),
+        'token' => env('CRM_INTERNAL_TOKEN'),
         'secret' => env('CRM_API_SECRET'),
+        'company_id' => env('CRM_COMPANY_ID'),
+        'company_slug' => env('CRM_COMPANY_SLUG'),
+
+        // Capability flag for `GET /api/v1/internal/customers/{id}`, which the CRM
+        // does not expose yet (see docs/features/crm-integration/contract.md). The
+        // vehicle form's "does this customer exist in CRM" rule reads a 404 as
+        // "customer not found" — and a missing route also answers 404, so with the
+        // endpoint absent the rule rejected every valid customer id and blocked
+        // vehicle creation outright. Default off: skip the check rather than fail it.
+        'customer_lookup_by_id_enabled' => (bool) env('CRM_CUSTOMER_LOOKUP_BY_ID_ENABLED', false),
     ],
 
     'gcs' => [

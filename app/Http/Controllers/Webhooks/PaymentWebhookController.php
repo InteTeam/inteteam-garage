@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\RepairJob;
 use App\Services\CrmPaymentService;
 use App\Services\CrmStaffNotificationService;
+use App\Support\InternalSecretGuard;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
@@ -20,11 +21,11 @@ final class PaymentWebhookController extends Controller
 
     public function handle(Request $request): Response
     {
-        $secret = config('services.garage.internal_secret');
-
-        if ($request->header('X-Internal-Secret') !== $secret) {
-            abort(401, 'Unauthorized webhook call.');
-        }
+        InternalSecretGuard::assert(
+            configured: config('services.garage.internal_secret'),
+            provided: $request->header('X-Internal-Secret'),
+            context: 'CRM payment webhook',
+        );
 
         $validated = $request->validate([
             'job_id' => ['required', 'string'],
